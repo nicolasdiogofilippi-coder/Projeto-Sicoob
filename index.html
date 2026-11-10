@@ -271,6 +271,7 @@ function cartao(f) {
     analise = `<div class="bloco"><div class="dados">
       <div><small>Valor pré-aprovado</small><b>${brl(f.valor_pre_aprovado)}</b></div>
       <div><small>Parcelas</small><b>${f.parcelas ?? '—'}</b></div>
+      <div><small>Valor da parcela</small><b>${brl(f.valor_parcela)}</b></div>
       <div><small>Aprovação final</small><b>${f.aprovacao_final === 'sim' ? 'Confirmada' : f.aprovacao_final === 'nao' ? 'Não confirmada' : 'Pendente'}</b></div>
     </div></div>`;
   }
@@ -284,7 +285,8 @@ function cartao(f) {
             <option value="pre_aprovado" ${f.resultado === 'pre_aprovado' ? 'selected' : ''}>Pré-aprovado</option>
             <option value="recusado" ${f.resultado === 'recusado' ? 'selected' : ''}>Recusado</option></select></div>
         <div><label>Valor pré-aprovado (R$)</label><input class="vpre" type="number" step="0.01" min="0" value="${f.valor_pre_aprovado ?? ''}"></div>
-        <div><label>Parcelas</label><input class="parc" type="number" min="1" value="${f.parcelas ?? ''}"></div>
+        <div><label>Parcelas (quantidade)</label><input class="parc" type="number" min="1" value="${f.parcelas ?? ''}"></div>
+        <div><label>Valor da parcela (R$)</label><input class="vparc" type="number" step="0.01" min="0" value="${f.valor_parcela ?? ''}"></div>
         <div><label>Aprovação final</label>
           <select class="fin"><option value="">Pendente</option>
             <option value="sim" ${f.aprovacao_final === 'sim' ? 'selected' : ''}>Confirmada</option>
@@ -309,11 +311,12 @@ async function salvarAnalise(id) {
   const el = document.getElementById('f' + id);
   const resultado = el.querySelector('.res').value;
   if (!resultado) { alert('Escolha pré-aprovado ou recusado.'); return; }
-  const v = el.querySelector('.vpre').value, p = el.querySelector('.parc').value, a = el.querySelector('.fin').value;
+  const v = el.querySelector('.vpre').value, p = el.querySelector('.parc').value, vp = el.querySelector('.vparc').value, a = el.querySelector('.fin').value;
   const { error } = await sb.from('fichas').update({
     resultado,
     valor_pre_aprovado: v ? Number(v) : null,
     parcelas: p ? parseInt(p, 10) : null,
+    valor_parcela: vp ? Number(vp) : null,
     aprovacao_final: a || null
   }).eq('id', id);
   if (error) { alert('Erro ao salvar: ' + error.message); return; }
