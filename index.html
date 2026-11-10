@@ -87,6 +87,9 @@ main{max-width:1080px;margin:0 auto;padding:24px}
 .acoes{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .vazio{text-align:center;color:var(--suave);padding:48px 0;border:1px dashed var(--borda);border-radius:16px}
 
+textarea{width:100%;padding:10px 12px;border:1px solid var(--borda);border-radius:10px;background:#fff;font:inherit;color:inherit;resize:vertical;min-height:70px;transition:border-color .15s, box-shadow .15s}
+textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,125,95,.14)}
+.obs{white-space:pre-wrap}
 @media(max-width:860px){.filtros{grid-template-columns:1fr 1fr}.filtros>:first-child{grid-column:1/-1}.filtros .btn{grid-column:1/-1}}
 @media(max-width:520px){main{padding:16px}.topo-in{padding:10px 16px}}
 </style>
@@ -273,7 +276,7 @@ function cartao(f) {
       <div><small>Parcelas</small><b>${f.parcelas ?? '—'}</b></div>
       <div><small>Valor da parcela</small><b>${brl(f.valor_parcela)}</b></div>
       <div><small>Aprovação final</small><b>${f.aprovacao_final === 'sim' ? 'Confirmada' : f.aprovacao_final === 'nao' ? 'Não confirmada' : 'Pendente'}</b></div>
-    </div></div>`;
+    </div>${f.observacoes ? `<div style="margin-top:14px"><small style="display:block;color:var(--suave);font-size:11.5px;font-weight:500;margin-bottom:2px">Observações do Sicoob</small><div class="obs">${esc(f.observacoes)}</div></div>` : ''}</div>`;
   }
 
   let acoes = '';
@@ -292,6 +295,7 @@ function cartao(f) {
             <option value="sim" ${f.aprovacao_final === 'sim' ? 'selected' : ''}>Confirmada</option>
             <option value="nao" ${f.aprovacao_final === 'nao' ? 'selected' : ''}>Não confirmada</option></select></div>
       </div>
+      <div class="campo" style="margin:14px 0 0"><label>Observações</label><textarea class="obs-in" placeholder="Observações sobre a ficha (aprovada ou recusada)">${esc(f.observacoes ?? '')}</textarea></div>
       <div class="acoes"><button class="btn" onclick="salvarAnalise('${f.id}')">Salvar análise</button></div>
     </div>`;
   } else {
@@ -311,12 +315,13 @@ async function salvarAnalise(id) {
   const el = document.getElementById('f' + id);
   const resultado = el.querySelector('.res').value;
   if (!resultado) { alert('Escolha pré-aprovado ou recusado.'); return; }
-  const v = el.querySelector('.vpre').value, p = el.querySelector('.parc').value, vp = el.querySelector('.vparc').value, a = el.querySelector('.fin').value;
+  const v = el.querySelector('.vpre').value, p = el.querySelector('.parc').value, vp = el.querySelector('.vparc').value, a = el.querySelector('.fin').value, ob = el.querySelector('.obs-in').value.trim();
   const { error } = await sb.from('fichas').update({
     resultado,
     valor_pre_aprovado: v ? Number(v) : null,
     parcelas: p ? parseInt(p, 10) : null,
     valor_parcela: vp ? Number(vp) : null,
+    observacoes: ob || null,
     aprovacao_final: a || null
   }).eq('id', id);
   if (error) { alert('Erro ao salvar: ' + error.message); return; }
