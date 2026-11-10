@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fichas Sicoob</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ffffff; --sup:#f7f8f9; --borda:#e7eaec; --texto:#0f1b1f; --suave:#667479;
+  --acc:#0a7d5f; --acc-h:#086a50; --acc-s:#e8f6f1;
+  --ok-bg:#e8f6f1; --ok:#0a7d5f; --er-bg:#fdecea; --er:#c2362b; --pe-bg:#fff4dc; --pe:#9a6200;
+  --sombra:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--texto);font:14.5px/1.5 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit;color:inherit}
+.oculto{display:none!important}
+
+/* topo */
+.topo{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--borda)}
+.topo-in{max-width:1080px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:12px}
+.marca{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:-.01em}
+.marca i{width:28px;height:28px;border-radius:8px;background:var(--acc);display:grid;place-items:center;color:#fff;font-style:normal;font-size:14px}
+.papel{background:var(--acc-s);color:var(--acc);font-weight:600;font-size:12px;padding:3px 10px;border-radius:99px}
+.sair{margin-left:auto}
+
+/* botões e campos */
+.btn{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;transition:background .15s}
+.btn:hover{background:var(--acc-h)}
+.btn.sec{background:#fff;color:var(--texto);border:1px solid var(--borda)}
+.btn.sec:hover{background:var(--sup)}
+.btn.perigo{background:#fff;color:var(--er);border:1px solid var(--borda)}
+.btn.perigo:hover{background:var(--er-bg)}
+.btn.peq{padding:7px 12px;font-size:13px}
+label{display:block;font-size:12px;font-weight:500;color:var(--suave);margin:0 0 5px}
+input,select{width:100%;padding:10px 12px;border:1px solid var(--borda);border-radius:10px;background:#fff;transition:border-color .15s, box-shadow .15s}
+input:focus,select:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,125,95,.14)}
+button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+
+/* login */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login-box{width:100%;max-width:380px}
+.login-box .marca{margin-bottom:28px;font-size:20px}
+.login-box h1{font-size:26px;letter-spacing:-.02em;margin:0 0 6px}
+.login-box p.sub{color:var(--suave);margin:0 0 22px}
+.campo{margin-bottom:14px}
+.msg{color:var(--er);min-height:20px;margin-top:10px;font-size:13px}
+
+main{max-width:1080px;margin:0 auto;padding:24px}
+.faixa{background:var(--pe-bg);color:var(--pe);padding:10px 14px;border-radius:10px;margin-bottom:18px;font-size:13px}
+
+/* nova ficha */
+.novo{border:1px solid var(--borda);border-radius:16px;box-shadow:var(--sombra);margin-bottom:22px;background:#fff}
+.novo summary{cursor:pointer;font-weight:600;padding:16px 20px;list-style:none;display:flex;align-items:center;gap:10px}
+.novo summary::-webkit-details-marker{display:none}
+.novo summary::before{content:'+';display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--acc-s);color:var(--acc);font-weight:700}
+.novo[open] summary::before{content:'–'}
+.novo .corpo{padding:0 20px 20px}
+.grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
+
+/* filtros */
+.filtros{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:20px}
+
+/* abas */
+.abas{display:inline-flex;gap:2px;background:var(--sup);border:1px solid var(--borda);padding:4px;border-radius:12px;margin-bottom:18px;max-width:100%;overflow-x:auto}
+.aba{background:none;border:0;padding:8px 16px;border-radius:9px;cursor:pointer;color:var(--suave);font-weight:600;white-space:nowrap}
+.aba.ativa{background:#fff;color:var(--texto);box-shadow:var(--sombra)}
+.aba span{margin-left:8px;font-size:12px;background:var(--borda);color:var(--suave);padding:1px 8px;border-radius:99px}
+.aba.ativa span{background:var(--acc-s);color:var(--acc)}
+
+/* fichas */
+.ficha{border:1px solid var(--borda);border-radius:16px;padding:18px 20px;margin-bottom:12px;box-shadow:var(--sombra);background:#fff}
+.cab{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.nome{font-weight:600;font-size:17px;letter-spacing:-.01em}
+.data{color:var(--suave);font-size:12.5px;margin-top:2px}
+.chip{display:inline-block;padding:4px 11px;border-radius:99px;font-size:12px;font-weight:600}
+.chip.pre_aprovado{background:var(--ok-bg);color:var(--ok)}
+.chip.recusado{background:var(--er-bg);color:var(--er)}
+.chip.pend{background:var(--pe-bg);color:var(--pe)}
+.dados{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px 20px;margin-top:16px}
+.dados small{display:block;color:var(--suave);font-size:11.5px;font-weight:500;margin-bottom:2px}
+.dados b{font-weight:600;font-variant-numeric:tabular-nums}
+.bloco{background:var(--sup);border-radius:12px;padding:14px 16px;margin-top:16px}
+.bloco .dados{margin-top:0}
+.acoes{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.vazio{text-align:center;color:var(--suave);padding:48px 0;border:1px dashed var(--borda);border-radius:16px}
+
+@media(max-width:860px){.filtros{grid-template-columns:1fr 1fr}.filtros>:first-child{grid-column:1/-1}.filtros .btn{grid-column:1/-1}}
+@media(max-width:520px){main{padding:16px}.topo-in{padding:10px 16px}}
+</style>
+</head>
+<body>
+
+<section id="telaLogin" class="login oculto">
+  <div class="login-box">
+    <div class="marca"><i>S</i> Fichas Sicoob</div>
+    <h1>Entrar</h1>
+    <p class="sub">Acesse com seu e-mail e senha.</p>
+    <div class="campo"><label for="email">E-mail</label><input id="email" type="email" autocomplete="username"></div>
+    <div class="campo"><label for="senha">Senha</label><input id="senha" type="password" autocomplete="current-password"></div>
+    <button class="btn" id="btnEntrar" style="width:100%;margin-top:6px">Entrar</button>
+    <div class="msg" id="msgLogin"></div>
+    <p class="faixa oculto" id="dicaDemo">Modo demonstração: digite qualquer e-mail e senha. Se o e-mail tiver a palavra "operador", você entra como operador Sicoob. Senão, entra como F&amp;I.</p>
+  </div>
+</section>
+
+<div id="telaApp" class="oculto">
+  <header class="topo"><div class="topo-in">
+    <div class="marca"><i>S</i> Fichas Sicoob</div>
+    <span class="papel" id="papelTag"></span>
+    <button class="btn sec peq sair" id="btnSair">Sair</button>
+  </div></header>
+
+  <main>
+    <p class="faixa oculto" id="faixaDemo">Modo demonstração: são dados de exemplo e nada é salvo. Para usar de verdade, preencha as chaves do Supabase no início do script.</p>
+
+    <details class="novo oculto" id="blocoNovo">
+      <summary>Nova ficha</summary>
+      <div class="corpo">
+        <div class="grade">
+          <div><label for="nNome">Nome</label><input id="nNome"></div>
+          <div><label for="nCpf">CPF</label><input id="nCpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
+          <div><label for="nModelo">Modelo e ano do carro</label><input id="nModelo" placeholder="Onix 1.0 2021"></div>
+          <div><label for="nFipe">FIPE (R$)</label><input id="nFipe" type="number" step="0.01" min="0"></div>
+          <div><label for="nValor">Valor a financiar (R$)</label><input id="nValor" type="number" step="0.01" min="0"></div>
+          <div><label for="nVend">Vendedor</label><input id="nVend"></div>
+          <div><label for="nFi">F&amp;I</label><input id="nFi"></div>
+        </div>
+        <div class="acoes" style="align-items:center"><button class="btn" id="btnSalvarNova">Incluir ficha</button><span class="msg" id="msgNova" style="margin:0"></span></div>
+      </div>
+    </details>
+
+    <div class="filtros">
+      <div><label for="busca">Cliente</label><input id="busca" placeholder="Buscar por nome"></div>
+      <div><label for="bVend">Vendedor</label><input id="bVend" placeholder="Nome"></div>
+      <div><label for="bFi">F&amp;I</label><input id="bFi" placeholder="Nome"></div>
+      <div><label for="de">De</label><input id="de" type="date"></div>
+      <div><label for="ate">Até</label><input id="ate" type="date"></div>
+      <button class="btn sec" id="btnLimpar">Limpar</button>
+    </div>
+
+    <nav class="abas" id="abas"></nav>
+    <div id="lista"></div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script>
+const SUPABASE_URL = 'https://lhvgbmixwrhybdovgtwo.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_x0WFxAWbyJ_Zt638jZTwzA_lf1Ee1kF';
+const DEMO = SUPABASE_URL.startsWith('COLE_AQUI');
+const sb = DEMO ? criarDemo() : supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// Banco de mentira, só para visualizar o site antes de configurar o Supabase
+function criarDemo() {
+  const h = 3600e3, t = x => new Date(Date.now() - x * h).toISOString();
+  const linhas = [
+    {id:'1',created_at:t(1),nome:'Maria Souza',cpf:'123.456.789-09',modelo_ano:'Onix 1.0 2021',fipe:62500,valor_financiado:40000,vendedor:'Rafael',fi_nome:'Luiz',status:'incluida',resultado:null,valor_pre_aprovado:null,parcelas:null,aprovacao_final:null},
+    {id:'2',created_at:t(5),nome:'João Pereira',cpf:'987.654.321-00',modelo_ano:'HB20 1.6 2019',fipe:58000,valor_financiado:35000,vendedor:'Bianca',fi_nome:'Luiz',status:'analisada',resultado:'pre_aprovado',valor_pre_aprovado:32000,parcelas:48,aprovacao_final:null},
+    {id:'3',created_at:t(28),nome:'Ana Lima',cpf:'111.222.333-44',modelo_ano:'Creta 2.0 2020',fipe:91000,valor_financiado:60000,vendedor:'Rafael',fi_nome:'Luiz',status:'fechada',resultado:'pre_aprovado',valor_pre_aprovado:58000,parcelas:60,aprovacao_final:'sim'},
+    {id:'4',created_at:t(30),nome:'Carlos Dias',cpf:'555.666.777-88',modelo_ano:'Gol 1.6 2015',fipe:34000,valor_financiado:25000,vendedor:'Bianca',fi_nome:'Luiz',status:'analisada',resultado:'recusado',valor_pre_aprovado:null,parcelas:null,aprovacao_final:null}
+  ];
+  let usuario = null;
+  const ok = Promise.resolve({ error: null });
+  return {
+    auth: {
+      getSession: async () => ({ data: { session: usuario ? {} : null } }),
+      signInWithPassword: async ({ email }) => { usuario = /operador/i.test(email) ? 'operador' : 'fi'; return { error: null }; },
+      signOut: async () => { usuario = null; }
+    },
+    from() {
+      const filtros = [];
+      const b = {
+        select: () => b, order: () => b, limit: () => b,
+        ilike: (c, v) => { const q = v.replace(/%/g, '').toLowerCase(); filtros.push(r => String(r[c]).toLowerCase().includes(q)); return b; },
+        gte: (c, v) => { filtros.push(r => r[c] >= v); return b; },
+        lte: (c, v) => { filtros.push(r => r[c] <= v); return b; },
+        maybeSingle: () => Promise.resolve({ data: usuario ? { papel: usuario } : null, error: null }),
+        then: (res) => res({ data: linhas.filter(r => filtros.every(f => f(r))).sort((a, c) => c.created_at.localeCompare(a.created_at)), error: null }),
+        insert: (n) => { linhas.push({ id: String(Date.now()), created_at: new Date().toISOString(), status: 'incluida', resultado: null, valor_pre_aprovado: null, parcelas: null, aprovacao_final: null, ...n }); return ok; },
+        update: (v) => ({ eq: (c, id) => {
+          const r = linhas.find(x => x.id === id); Object.assign(r, v);
+          if (usuario === 'operador' && r.resultado) r.status = r.aprovacao_final === 'sim' ? 'fechada' : 'analisada';
+          return ok; } }),
+        delete: () => ({ eq: (c, id) => { linhas.splice(linhas.findIndex(x => x.id === id), 1); return ok; } })
+      };
+      return b;
+    }
+  };
+}
+
+const ABAS = [['incluida','Incluídas'],['analisada','Analisadas'],['fechada','Fechadas']];
+const RES = { pre_aprovado: 'Pré-aprovado', recusado: 'Recusado' };
+let papel = null, aba = 'incluida', fichas = [], timer;
+
+const $ = s => document.querySelector(s);
+const brl = v => v == null ? '—' : Number(v).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const dataBR = iso => new Date(iso).toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'});
+
+async function iniciar() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (!session) { $('#telaApp').classList.add('oculto'); $('#telaLogin').classList.remove('oculto'); return; }
+  const { data } = await sb.from('perfis').select('papel').maybeSingle();
+  if (!data) { await sb.auth.signOut(); $('#msgLogin').textContent = 'Este usuário ainda não tem perfil. Peça para liberarem o acesso.'; $('#telaLogin').classList.remove('oculto'); $('#telaApp').classList.add('oculto'); return; }
+  papel = data.papel;
+  $('#telaLogin').classList.add('oculto');
+  $('#telaApp').classList.remove('oculto');
+  $('#faixaDemo').classList.toggle('oculto', !DEMO);
+  $('#papelTag').textContent = papel === 'fi' ? 'F&I' : 'Operador Sicoob';
+  $('#blocoNovo').classList.toggle('oculto', papel !== 'fi');
+  try { $('#nFi').value = localStorage.getItem('fiNome') || ''; } catch (e) {}
+  aba = 'incluida';
+  carregar();
+}
+
+$('#btnEntrar').onclick = async () => {
+  $('#msgLogin').textContent = '';
+  const { error } = await sb.auth.signInWithPassword({ email: $('#email').value.trim(), password: $('#senha').value });
+  if (error) { $('#msgLogin').textContent = 'E-mail ou senha incorretos.'; return; }
+  iniciar();
+};
+$('#senha').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnEntrar').click(); });
+$('#btnSair').onclick = async () => { await sb.auth.signOut(); $('#senha').value = ''; iniciar(); };
+
+async function carregar() {
+  let q = sb.from('fichas').select('*').order('created_at', { ascending: false }).limit(300);
+  const nome = $('#busca').value.trim(), vend = $('#bVend').value.trim(), fi = $('#bFi').value.trim();
+  if (nome) q = q.ilike('nome', `%${nome}%`);
+  if (vend) q = q.ilike('vendedor', `%${vend}%`);
+  if (fi) q = q.ilike('fi_nome', `%${fi}%`);
+  const de = $('#de').value, ate = $('#ate').value;
+  if (de) q = q.gte('created_at', new Date(de + 'T00:00:00').toISOString());
+  if (ate) q = q.lte('created_at', new Date(ate + 'T23:59:59.999').toISOString());
+  const { data, error } = await q;
+  if (error) { $('#lista').innerHTML = `<div class="vazio">Não foi possível carregar as fichas: ${esc(error.message)}</div>`; return; }
+  fichas = data;
+  render();
+}
+
+['busca','bVend','bFi','de','ate'].forEach(id => $('#' + id).addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(carregar, 300); }));
+$('#btnLimpar').onclick = () => { ['busca','bVend','bFi','de','ate'].forEach(id => $('#' + id).value = ''); carregar(); };
+
+function render() {
+  $('#abas').innerHTML = ABAS.map(([k, nome]) =>
+    `<button class="aba ${k === aba ? 'ativa' : ''}" data-aba="${k}">${nome}<span>${fichas.filter(f => f.status === k).length}</span></button>`).join('');
+  document.querySelectorAll('.aba').forEach(b => b.onclick = () => { aba = b.dataset.aba; render(); });
+  const lista = fichas.filter(f => f.status === aba);
+  $('#lista').innerHTML = lista.length ? lista.map(cartao).join('') : '<div class="vazio">Nenhuma ficha nesta categoria.</div>';
+}
+
+function cartao(f) {
+  const chip = f.resultado
+    ? `<span class="chip ${f.resultado}">${RES[f.resultado]}</span>`
+    : '<span class="chip pend">Aguardando análise</span>';
+
+  const dados = `
+    <div class="dados">
+      <div><small>CPF</small><b>${esc(f.cpf)}</b></div>
+      <div><small>Carro</small><b>${esc(f.modelo_ano)}</b></div>
+      <div><small>FIPE</small><b>${brl(f.fipe)}</b></div>
+      <div><small>Valor a financiar</small><b>${brl(f.valor_financiado)}</b></div>
+      <div><small>Vendedor</small><b>${esc(f.vendedor || '—')}</b></div>
+      <div><small>F&amp;I</small><b>${esc(f.fi_nome || '—')}</b></div>
+    </div>`;
+
+  let analise = '';
+  if (f.resultado && papel === 'fi') {
+    analise = `<div class="bloco"><div class="dados">
+      <div><small>Valor pré-aprovado</small><b>${brl(f.valor_pre_aprovado)}</b></div>
+      <div><small>Parcelas</small><b>${f.parcelas ?? '—'}</b></div>
+      <div><small>Aprovação final</small><b>${f.aprovacao_final === 'sim' ? 'Confirmada' : f.aprovacao_final === 'nao' ? 'Não confirmada' : 'Pendente'}</b></div>
+    </div></div>`;
+  }
+
+  let acoes = '';
+  if (papel === 'operador') {
+    acoes = `<div class="bloco" id="f${f.id}">
+      <div class="grade">
+        <div><label>Resultado</label>
+          <select class="res"><option value="">Selecione</option>
+            <option value="pre_aprovado" ${f.resultado === 'pre_aprovado' ? 'selected' : ''}>Pré-aprovado</option>
+            <option value="recusado" ${f.resultado === 'recusado' ? 'selected' : ''}>Recusado</option></select></div>
+        <div><label>Valor pré-aprovado (R$)</label><input class="vpre" type="number" step="0.01" min="0" value="${f.valor_pre_aprovado ?? ''}"></div>
+        <div><label>Parcelas</label><input class="parc" type="number" min="1" value="${f.parcelas ?? ''}"></div>
+        <div><label>Aprovação final</label>
+          <select class="fin"><option value="">Pendente</option>
+            <option value="sim" ${f.aprovacao_final === 'sim' ? 'selected' : ''}>Confirmada</option>
+            <option value="nao" ${f.aprovacao_final === 'nao' ? 'selected' : ''}>Não confirmada</option></select></div>
+      </div>
+      <div class="acoes"><button class="btn" onclick="salvarAnalise('${f.id}')">Salvar análise</button></div>
+    </div>`;
+  } else {
+    acoes = `<div class="acoes">
+      ${f.status !== 'fechada' ? `<button class="btn sec peq" onclick="mudarStatus('${f.id}','fechada')">Marcar como fechada</button>` : `<button class="btn sec peq" onclick="mudarStatus('${f.id}','analisada')">Reabrir</button>`}
+      <button class="btn perigo peq" onclick="excluir('${f.id}')">Excluir</button>
+    </div>`;
+  }
+
+  return `<article class="ficha">
+    <div class="cab"><div><div class="nome">${esc(f.nome)}</div><div class="data">Incluída em ${dataBR(f.created_at)}</div></div>${chip}</div>
+    ${dados}${analise}${acoes}
+  </article>`;
+}
+
+async function salvarAnalise(id) {
+  const el = document.getElementById('f' + id);
+  const resultado = el.querySelector('.res').value;
+  if (!resultado) { alert('Escolha pré-aprovado ou recusado.'); return; }
+  const v = el.querySelector('.vpre').value, p = el.querySelector('.parc').value, a = el.querySelector('.fin').value;
+  const { error } = await sb.from('fichas').update({
+    resultado,
+    valor_pre_aprovado: v ? Number(v) : null,
+    parcelas: p ? parseInt(p, 10) : null,
+    aprovacao_final: a || null
+  }).eq('id', id);
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+  carregar();
+}
+
+async function mudarStatus(id, status) {
+  const { error } = await sb.from('fichas').update({ status }).eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  carregar();
+}
+
+async function excluir(id) {
+  if (!confirm('Excluir esta ficha? Não dá para desfazer.')) return;
+  const { error } = await sb.from('fichas').delete().eq('id', id);
+  if (error) { alert('Erro: ' + error.message); return; }
+  carregar();
+}
+
+$('#btnSalvarNova').onclick = async () => {
+  const msg = $('#msgNova'); msg.textContent = '';
+  const nova = {
+    nome: $('#nNome').value.trim(),
+    cpf: $('#nCpf').value.trim(),
+    modelo_ano: $('#nModelo').value.trim(),
+    fipe: Number($('#nFipe').value),
+    valor_financiado: Number($('#nValor').value),
+    vendedor: $('#nVend').value.trim(),
+    fi_nome: $('#nFi').value.trim()
+  };
+  if (!nova.nome || !nova.cpf || !nova.modelo_ano || !nova.fipe || !nova.valor_financiado || !nova.vendedor || !nova.fi_nome) { msg.textContent = 'Preencha todos os campos.'; return; }
+  const { error } = await sb.from('fichas').insert(nova);
+  if (error) { msg.textContent = 'Erro ao incluir: ' + error.message; return; }
+  try { localStorage.setItem('fiNome', nova.fi_nome); } catch (e) {}
+  ['nNome','nCpf','nModelo','nFipe','nValor','nVend'].forEach(id => $('#' + id).value = '');
+  aba = 'incluida';
+  carregar();
+};
+
+if (DEMO) $('#dicaDemo').classList.remove('oculto');
+iniciar();
+</script>
+</body>
+</html>
