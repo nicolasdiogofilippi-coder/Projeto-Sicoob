@@ -61,7 +61,7 @@ main{max-width:1080px;margin:0 auto;padding:24px}
 .grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
 
 /* filtros */
-.filtros{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr auto;gap:10px;align-items:end;margin-bottom:20px}
+.filtros{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;align-items:end;margin-bottom:20px}
 
 /* abas */
 .abas{display:inline-flex;gap:2px;background:var(--sup);border:1px solid var(--borda);padding:4px;border-radius:12px;margin-bottom:18px;max-width:100%;overflow-x:auto}
@@ -91,6 +91,19 @@ textarea{width:100%;padding:10px 12px;border:1px solid var(--borda);border-radiu
 textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,125,95,.14)}
 .obs{white-space:pre-wrap}
 @media(max-width:860px){.filtros{grid-template-columns:1fr 1fr}.filtros>:first-child{grid-column:1/-1}.filtros .btn{grid-column:1/-1}}
+/* meta */
+.meta{border:1px solid var(--borda);border-radius:16px;box-shadow:var(--sombra);padding:18px 20px;margin-bottom:22px;background:#fff}
+.meta-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
+.meta h2{margin:0;font-size:16px;letter-spacing:-.01em}
+.meta .mes{width:auto}
+.meta-nums{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px 20px;margin-top:16px}
+.meta-nums small{display:block;color:var(--suave);font-size:11.5px;font-weight:500;margin-bottom:2px}
+.meta-nums b{font-size:20px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.barra{position:relative;height:10px;background:var(--sup);border:1px solid var(--borda);border-radius:99px;margin-top:18px;overflow:hidden}
+.barra i{display:block;height:100%;background:var(--acc);border-radius:99px;transition:width .3s}
+.marcas{display:flex;justify-content:space-between;font-size:11.5px;color:var(--suave);margin-top:6px}
+.meta-dica{margin-top:12px;font-size:13px;color:var(--suave)}
+.meta-dica.ok{color:var(--ok);font-weight:600}
 @media(max-width:520px){main{padding:16px}.topo-in{padding:10px 16px}}
 </style>
 </head>
@@ -135,10 +148,27 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,12
       </div>
     </details>
 
+    <section class="meta oculto" id="blocoMeta">
+      <div class="meta-top">
+        <h2>Meta Sicoob do mês</h2>
+        <input type="month" class="mes" id="mesMeta" aria-label="Mês da meta">
+      </div>
+      <div class="meta-nums">
+        <div><small>Contratos fechados</small><b id="mFechados">0 / 9</b></div>
+        <div><small>Total financiado</small><b id="mTotal">R$ 0,00</b></div>
+        <div><small>Comissão atual</small><b id="mPerc">0%</b></div>
+        <div><small>Ganho da loja</small><b id="mGanho">R$ 0,00</b></div>
+      </div>
+      <div class="barra"><i id="mBarra" style="width:0"></i></div>
+      <div class="marcas"><span>0</span><span>4 contratos: 3%</span><span>9 contratos: 4%</span></div>
+      <div class="meta-dica" id="mDica"></div>
+    </section>
+
     <div class="filtros">
       <div><label for="busca">Cliente</label><input id="busca" placeholder="Buscar por nome"></div>
       <div><label for="bVend">Vendedor</label><input id="bVend" placeholder="Nome"></div>
       <div><label for="bFi">F&amp;I</label><input id="bFi" placeholder="Nome"></div>
+      <div><label for="bRes">Resultado</label><select id="bRes"><option value="">Todos</option><option value="pre_aprovado">Pré-aprovadas</option><option value="recusado">Recusadas</option></select></div>
       <div><label for="de">De</label><input id="de" type="date"></div>
       <div><label for="ate">Até</label><input id="ate" type="date"></div>
       <button class="btn sec" id="btnLimpar">Limpar</button>
@@ -160,10 +190,10 @@ const sb = DEMO ? criarDemo() : supabase.createClient(SUPABASE_URL, SUPABASE_KEY
 function criarDemo() {
   const h = 3600e3, t = x => new Date(Date.now() - x * h).toISOString();
   const linhas = [
-    {id:'1',created_at:t(1),nome:'Maria Souza',cpf:'123.456.789-09',modelo_ano:'Onix 1.0 2021',fipe:62500,valor_financiado:40000,vendedor:'Rafael',fi_nome:'Luiz',status:'incluida',resultado:null,valor_pre_aprovado:null,parcelas:null,aprovacao_final:null},
-    {id:'2',created_at:t(5),nome:'João Pereira',cpf:'987.654.321-00',modelo_ano:'HB20 1.6 2019',fipe:58000,valor_financiado:35000,vendedor:'Bianca',fi_nome:'Luiz',status:'analisada',resultado:'pre_aprovado',valor_pre_aprovado:32000,parcelas:48,aprovacao_final:null},
-    {id:'3',created_at:t(28),nome:'Ana Lima',cpf:'111.222.333-44',modelo_ano:'Creta 2.0 2020',fipe:91000,valor_financiado:60000,vendedor:'Rafael',fi_nome:'Luiz',status:'fechada',resultado:'pre_aprovado',valor_pre_aprovado:58000,parcelas:60,aprovacao_final:'sim'},
-    {id:'4',created_at:t(30),nome:'Carlos Dias',cpf:'555.666.777-88',modelo_ano:'Gol 1.6 2015',fipe:34000,valor_financiado:25000,vendedor:'Bianca',fi_nome:'Luiz',status:'analisada',resultado:'recusado',valor_pre_aprovado:null,parcelas:null,aprovacao_final:null}
+    {id:'1',created_at:t(1),updated_at:t(1),nome:'Maria Souza',cpf:'123.456.789-09',modelo_ano:'Onix 1.0 2021',fipe:62500,valor_financiado:40000,vendedor:'Rafael',fi_nome:'Luiz',status:'incluida',resultado:null,valor_pre_aprovado:null,parcelas:null,aprovacao_final:null},
+    {id:'2',created_at:t(5),updated_at:t(5),nome:'João Pereira',cpf:'987.654.321-00',modelo_ano:'HB20 1.6 2019',fipe:58000,valor_financiado:35000,vendedor:'Bianca',fi_nome:'Luiz',status:'analisada',resultado:'pre_aprovado',valor_pre_aprovado:32000,parcelas:48,aprovacao_final:null},
+    {id:'3',created_at:t(28),updated_at:t(28),nome:'Ana Lima',cpf:'111.222.333-44',modelo_ano:'Creta 2.0 2020',fipe:91000,valor_financiado:60000,vendedor:'Rafael',fi_nome:'Luiz',status:'fechada',resultado:'pre_aprovado',valor_pre_aprovado:58000,parcelas:60,aprovacao_final:'sim'},
+    {id:'4',created_at:t(30),updated_at:t(30),nome:'Carlos Dias',cpf:'555.666.777-88',modelo_ano:'Gol 1.6 2015',fipe:34000,valor_financiado:25000,vendedor:'Bianca',fi_nome:'Luiz',status:'analisada',resultado:'recusado',valor_pre_aprovado:null,parcelas:null,aprovacao_final:null}
   ];
   let usuario = null;
   const ok = Promise.resolve({ error: null });
@@ -177,14 +207,15 @@ function criarDemo() {
       const filtros = [];
       const b = {
         select: () => b, order: () => b, limit: () => b,
+        eq: (c, v) => { filtros.push(r => r[c] === v); return b; },
         ilike: (c, v) => { const q = v.replace(/%/g, '').toLowerCase(); filtros.push(r => String(r[c]).toLowerCase().includes(q)); return b; },
         gte: (c, v) => { filtros.push(r => r[c] >= v); return b; },
         lte: (c, v) => { filtros.push(r => r[c] <= v); return b; },
         maybeSingle: () => Promise.resolve({ data: usuario ? { papel: usuario } : null, error: null }),
         then: (res) => res({ data: linhas.filter(r => filtros.every(f => f(r))).sort((a, c) => c.created_at.localeCompare(a.created_at)), error: null }),
-        insert: (n) => { linhas.push({ id: String(Date.now()), created_at: new Date().toISOString(), status: 'incluida', resultado: null, valor_pre_aprovado: null, parcelas: null, aprovacao_final: null, ...n }); return ok; },
+        insert: (n) => { linhas.push({ id: String(Date.now()), created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'incluida', resultado: null, valor_pre_aprovado: null, parcelas: null, aprovacao_final: null, ...n }); return ok; },
         update: (v) => ({ eq: (c, id) => {
-          const r = linhas.find(x => x.id === id); Object.assign(r, v);
+          const r = linhas.find(x => x.id === id); Object.assign(r, v); r.updated_at = new Date().toISOString();
           if (usuario === 'operador' && r.resultado) r.status = r.aprovacao_final === 'sim' ? 'fechada' : 'analisada';
           return ok; } }),
         delete: () => ({ eq: (c, id) => { linhas.splice(linhas.findIndex(x => x.id === id), 1); return ok; } })
@@ -196,7 +227,8 @@ function criarDemo() {
 
 const ABAS = [['incluida','Incluídas'],['analisada','Analisadas'],['fechada','Fechadas']];
 const RES = { pre_aprovado: 'Pré-aprovado', recusado: 'Recusado' };
-let papel = null, aba = 'incluida', fichas = [], timer;
+let papel = null, aba = 'incluida', fichas = [], timer, editId = null;
+const META = 9, NIVEL1 = 4, TAXA1 = 0.03, TAXA2 = 0.04;
 
 const $ = s => document.querySelector(s);
 const brl = v => v == null ? '—' : Number(v).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
@@ -214,6 +246,8 @@ async function iniciar() {
   $('#faixaDemo').classList.toggle('oculto', !DEMO);
   $('#papelTag').textContent = papel === 'fi' ? 'F&I' : 'Operador Sicoob';
   $('#blocoNovo').classList.toggle('oculto', papel !== 'fi');
+  $('#blocoMeta').classList.toggle('oculto', papel !== 'fi');
+  if (!$('#mesMeta').value) { const d = new Date(); $('#mesMeta').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
   try { $('#nFi').value = localStorage.getItem('fiNome') || ''; } catch (e) {}
   aba = 'incluida';
   carregar();
@@ -234,17 +268,78 @@ async function carregar() {
   if (nome) q = q.ilike('nome', `%${nome}%`);
   if (vend) q = q.ilike('vendedor', `%${vend}%`);
   if (fi) q = q.ilike('fi_nome', `%${fi}%`);
+  const res = $('#bRes').value;
+  if (res) q = q.eq('resultado', res);
   const de = $('#de').value, ate = $('#ate').value;
   if (de) q = q.gte('created_at', new Date(de + 'T00:00:00').toISOString());
   if (ate) q = q.lte('created_at', new Date(ate + 'T23:59:59.999').toISOString());
   const { data, error } = await q;
   if (error) { $('#lista').innerHTML = `<div class="vazio">Não foi possível carregar as fichas: ${esc(error.message)}</div>`; return; }
   fichas = data;
+  editId = null;
   render();
+  carregarMeta();
 }
 
-['busca','bVend','bFi','de','ate'].forEach(id => $('#' + id).addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(carregar, 300); }));
-$('#btnLimpar').onclick = () => { ['busca','bVend','bFi','de','ate'].forEach(id => $('#' + id).value = ''); carregar(); };
+['busca','bVend','bFi','bRes','de','ate'].forEach(id => $('#' + id).addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(carregar, 300); }));
+$('#btnLimpar').onclick = () => { ['busca','bVend','bFi','bRes','de','ate'].forEach(id => $('#' + id).value = ''); carregar(); };
+
+async function carregarMeta() {
+  if (papel !== 'fi') return;
+  const m = $('#mesMeta').value; if (!m) return;
+  const [y, mm] = m.split('-').map(Number);
+  const ini = new Date(y, mm - 1, 1).toISOString(), fim = new Date(y, mm, 0, 23, 59, 59, 999).toISOString();
+  const { data, error } = await sb.from('fichas').select('id,valor_financiado,resultado,updated_at').eq('status', 'fechada').gte('updated_at', ini).lte('updated_at', fim);
+  if (error) { $('#mDica').textContent = 'Não foi possível calcular a meta: ' + error.message; return; }
+  const ctr = data.filter(f => f.resultado !== 'recusado');
+  const n = ctr.length, total = ctr.reduce((a, f) => a + Number(f.valor_financiado || 0), 0);
+  const taxa = n >= META ? TAXA2 : n >= NIVEL1 ? TAXA1 : 0;
+  $('#mFechados').textContent = n + ' / ' + META;
+  $('#mTotal').textContent = brl(total);
+  $('#mPerc').textContent = (taxa * 100) + '%';
+  $('#mGanho').textContent = brl(total * taxa);
+  $('#mBarra').style.width = Math.min(100, n / META * 100) + '%';
+  const d = $('#mDica'); d.classList.remove('ok');
+  if (n >= META) { d.textContent = 'Meta batida! 4% sobre o valor financiado de todos os contratos fechados, sem descontos.'; d.classList.add('ok'); }
+  else if (n >= NIVEL1) d.textContent = 'Comissão de 3% ativa. Faltam ' + (META - n) + ' contrato(s) para virar 4%.';
+  else d.textContent = 'Faltam ' + (NIVEL1 - n) + ' contrato(s) para ativar os 3% e ' + (META - n) + ' para chegar aos 4%.';
+}
+$('#mesMeta').addEventListener('change', carregarMeta);
+
+function editar(id) { editId = id; render(); }
+function cancelarEdicao() { editId = null; render(); }
+async function salvarEdicao(id) {
+  const el = document.getElementById('e' + id), msg = el.querySelector('.msg');
+  const v = {
+    nome: el.querySelector('.e-nome').value.trim(),
+    cpf: el.querySelector('.e-cpf').value.trim(),
+    modelo_ano: el.querySelector('.e-modelo').value.trim(),
+    fipe: Number(el.querySelector('.e-fipe').value),
+    valor_financiado: Number(el.querySelector('.e-valor').value),
+    vendedor: el.querySelector('.e-vend').value.trim(),
+    fi_nome: el.querySelector('.e-fi').value.trim()
+  };
+  if (!v.nome || !v.cpf || !v.modelo_ano || !v.fipe || !v.valor_financiado || !v.vendedor || !v.fi_nome) { msg.textContent = 'Preencha todos os campos.'; return; }
+  const { error } = await sb.from('fichas').update(v).eq('id', id);
+  if (error) { msg.textContent = 'Erro ao salvar: ' + error.message; return; }
+  carregar();
+}
+
+function cartaoEdicao(f) {
+  return `<article class="ficha" id="e${f.id}">
+    <div class="nome" style="margin-bottom:14px">Editando ficha</div>
+    <div class="grade">
+      <div><label>Nome</label><input class="e-nome" value="${esc(f.nome)}"></div>
+      <div><label>CPF</label><input class="e-cpf" inputmode="numeric" maxlength="14" value="${esc(f.cpf)}"></div>
+      <div><label>Modelo e ano do carro</label><input class="e-modelo" value="${esc(f.modelo_ano)}"></div>
+      <div><label>FIPE (R$)</label><input class="e-fipe" type="number" step="0.01" min="0" value="${f.fipe ?? ''}"></div>
+      <div><label>Valor a financiar (R$)</label><input class="e-valor" type="number" step="0.01" min="0" value="${f.valor_financiado ?? ''}"></div>
+      <div><label>Vendedor</label><input class="e-vend" value="${esc(f.vendedor)}"></div>
+      <div><label>F&amp;I</label><input class="e-fi" value="${esc(f.fi_nome)}"></div>
+    </div>
+    <div class="acoes" style="align-items:center"><button class="btn" onclick="salvarEdicao('${f.id}')">Salvar alterações</button><button class="btn sec" onclick="cancelarEdicao()">Cancelar</button><span class="msg" style="margin:0"></span></div>
+  </article>`;
+}
 
 function render() {
   $('#abas').innerHTML = ABAS.map(([k, nome]) =>
@@ -255,6 +350,7 @@ function render() {
 }
 
 function cartao(f) {
+  if (papel === 'fi' && editId === f.id) return cartaoEdicao(f);
   const chip = f.resultado
     ? `<span class="chip ${f.resultado}">${RES[f.resultado]}</span>`
     : '<span class="chip pend">Aguardando análise</span>';
@@ -300,6 +396,7 @@ function cartao(f) {
     </div>`;
   } else {
     acoes = `<div class="acoes">
+      ${f.status !== 'fechada' ? `<button class="btn sec peq" onclick="editar('${f.id}')">Editar</button>` : ''}
       ${f.status !== 'fechada' ? `<button class="btn sec peq" onclick="mudarStatus('${f.id}','fechada')">Marcar como fechada</button>` : `<button class="btn sec peq" onclick="mudarStatus('${f.id}','analisada')">Reabrir</button>`}
       <button class="btn perigo peq" onclick="excluir('${f.id}')">Excluir</button>
     </div>`;
