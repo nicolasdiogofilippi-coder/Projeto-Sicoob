@@ -90,6 +90,8 @@ main{max-width:1080px;margin:0 auto;padding:24px}
 textarea{width:100%;padding:10px 12px;border:1px solid var(--borda);border-radius:10px;background:#fff;font:inherit;color:inherit;resize:vertical;min-height:70px;transition:border-color .15s, box-shadow .15s}
 textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,125,95,.14)}
 .obs{white-space:pre-wrap}
+#toast{position:fixed;top:16px;left:50%;transform:translate(-50%,-140%);z-index:50;background:#0a7d5f;color:#fff;padding:12px 22px;border-radius:12px;font-weight:600;box-shadow:0 8px 24px rgba(10,125,95,.35);transition:transform .35s cubic-bezier(.2,.9,.3,1.2);max-width:calc(100vw - 32px);text-align:center;pointer-events:none}
+#toast.show{transform:translate(-50%,0)}
 @media(max-width:860px){.filtros{grid-template-columns:1fr 1fr}.filtros>:first-child{grid-column:1/-1}.filtros .btn{grid-column:1/-1}}
 /* meta */
 .meta{border:1px solid var(--borda);border-radius:16px;box-shadow:var(--sombra);padding:18px 20px;margin-bottom:22px;background:#fff}
@@ -108,6 +110,7 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,12
 </style>
 </head>
 <body>
+<div id="toast" role="status" aria-live="polite"></div>
 
 <section id="telaLogin" class="login oculto">
   <div class="login-box">
@@ -139,8 +142,8 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,12
           <div><label for="nNome">Nome</label><input id="nNome"></div>
           <div><label for="nCpf">CPF</label><input id="nCpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
           <div><label for="nModelo">Modelo e ano do carro</label><input id="nModelo" placeholder="Onix 1.0 2021"></div>
-          <div><label for="nFipe">FIPE (R$)</label><input id="nFipe" type="number" step="0.01" min="0"></div>
-          <div><label for="nValor">Valor a financiar (R$)</label><input id="nValor" type="number" step="0.01" min="0"></div>
+          <div><label for="nFipe">FIPE (R$)</label><input id="nFipe" class="moeda" inputmode="numeric" placeholder="R$ 0,00"></div>
+          <div><label for="nValor">Valor a financiar (R$)</label><input id="nValor" class="moeda" inputmode="numeric" placeholder="R$ 0,00"></div>
           <div><label for="nVend">Vendedor</label><input id="nVend"></div>
           <div><label for="nFi">F&amp;I</label><input id="nFi"></div>
         </div>
@@ -233,6 +236,18 @@ const META = 9, NIVEL1 = 4, TAXA1 = 0.03, TAXA2 = 0.04;
 const $ = s => document.querySelector(s);
 const brl = v => v == null ? '—' : Number(v).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const parseMoeda = t => Number(String(t ?? '').replace(/\D/g, '')) / 100;
+const moedaFmt = v => v == null || v === '' ? '' : brl(v);
+document.addEventListener('input', e => {
+  if (!e.target.classList.contains('moeda')) return;
+  const d = e.target.value.replace(/\D/g, '');
+  e.target.value = d ? brl(Number(d) / 100) : '';
+});
+let toastT;
+function aviso(txt) {
+  const t = $('#toast'); t.textContent = '✓ ' + txt; t.classList.add('show');
+  clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 3200);
+}
 const dataBR = iso => new Date(iso).toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'});
 
 async function iniciar() {
@@ -314,14 +329,15 @@ async function salvarEdicao(id) {
     nome: el.querySelector('.e-nome').value.trim(),
     cpf: el.querySelector('.e-cpf').value.trim(),
     modelo_ano: el.querySelector('.e-modelo').value.trim(),
-    fipe: Number(el.querySelector('.e-fipe').value),
-    valor_financiado: Number(el.querySelector('.e-valor').value),
+    fipe: parseMoeda(el.querySelector('.e-fipe').value),
+    valor_financiado: parseMoeda(el.querySelector('.e-valor').value),
     vendedor: el.querySelector('.e-vend').value.trim(),
     fi_nome: el.querySelector('.e-fi').value.trim()
   };
   if (!v.nome || !v.cpf || !v.modelo_ano || !v.fipe || !v.valor_financiado || !v.vendedor || !v.fi_nome) { msg.textContent = 'Preencha todos os campos.'; return; }
   const { error } = await sb.from('fichas').update(v).eq('id', id);
   if (error) { msg.textContent = 'Erro ao salvar: ' + error.message; return; }
+  aviso('Ficha atualizada com sucesso!');
   carregar();
 }
 
@@ -332,8 +348,8 @@ function cartaoEdicao(f) {
       <div><label>Nome</label><input class="e-nome" value="${esc(f.nome)}"></div>
       <div><label>CPF</label><input class="e-cpf" inputmode="numeric" maxlength="14" value="${esc(f.cpf)}"></div>
       <div><label>Modelo e ano do carro</label><input class="e-modelo" value="${esc(f.modelo_ano)}"></div>
-      <div><label>FIPE (R$)</label><input class="e-fipe" type="number" step="0.01" min="0" value="${f.fipe ?? ''}"></div>
-      <div><label>Valor a financiar (R$)</label><input class="e-valor" type="number" step="0.01" min="0" value="${f.valor_financiado ?? ''}"></div>
+      <div><label>FIPE (R$)</label><input class="e-fipe moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.fipe)}"></div>
+      <div><label>Valor a financiar (R$)</label><input class="e-valor moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.valor_financiado)}"></div>
       <div><label>Vendedor</label><input class="e-vend" value="${esc(f.vendedor)}"></div>
       <div><label>F&amp;I</label><input class="e-fi" value="${esc(f.fi_nome)}"></div>
     </div>
@@ -383,9 +399,9 @@ function cartao(f) {
           <select class="res"><option value="">Selecione</option>
             <option value="pre_aprovado" ${f.resultado === 'pre_aprovado' ? 'selected' : ''}>Pré-aprovado</option>
             <option value="recusado" ${f.resultado === 'recusado' ? 'selected' : ''}>Recusado</option></select></div>
-        <div><label>Valor pré-aprovado (R$)</label><input class="vpre" type="number" step="0.01" min="0" value="${f.valor_pre_aprovado ?? ''}"></div>
+        <div><label>Valor pré-aprovado (R$)</label><input class="vpre moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.valor_pre_aprovado)}"></div>
         <div><label>Parcelas (quantidade)</label><input class="parc" type="number" min="1" value="${f.parcelas ?? ''}"></div>
-        <div><label>Valor da parcela (R$)</label><input class="vparc" type="number" step="0.01" min="0" value="${f.valor_parcela ?? ''}"></div>
+        <div><label>Valor da parcela (R$)</label><input class="vparc moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.valor_parcela)}"></div>
         <div><label>Aprovação final</label>
           <select class="fin"><option value="">Pendente</option>
             <option value="sim" ${f.aprovacao_final === 'sim' ? 'selected' : ''}>Confirmada</option>
@@ -415,13 +431,14 @@ async function salvarAnalise(id) {
   const v = el.querySelector('.vpre').value, p = el.querySelector('.parc').value, vp = el.querySelector('.vparc').value, a = el.querySelector('.fin').value, ob = el.querySelector('.obs-in').value.trim();
   const { error } = await sb.from('fichas').update({
     resultado,
-    valor_pre_aprovado: v ? Number(v) : null,
+    valor_pre_aprovado: v ? parseMoeda(v) : null,
     parcelas: p ? parseInt(p, 10) : null,
-    valor_parcela: vp ? Number(vp) : null,
+    valor_parcela: vp ? parseMoeda(vp) : null,
     observacoes: ob || null,
     aprovacao_final: a || null
   }).eq('id', id);
   if (error) { alert('Erro ao salvar: ' + error.message); return; }
+  aviso('Análise salva com sucesso!');
   carregar();
 }
 
@@ -444,8 +461,8 @@ $('#btnSalvarNova').onclick = async () => {
     nome: $('#nNome').value.trim(),
     cpf: $('#nCpf').value.trim(),
     modelo_ano: $('#nModelo').value.trim(),
-    fipe: Number($('#nFipe').value),
-    valor_financiado: Number($('#nValor').value),
+    fipe: parseMoeda($('#nFipe').value),
+    valor_financiado: parseMoeda($('#nValor').value),
     vendedor: $('#nVend').value.trim(),
     fi_nome: $('#nFi').value.trim()
   };
@@ -455,6 +472,7 @@ $('#btnSalvarNova').onclick = async () => {
   try { localStorage.setItem('fiNome', nova.fi_nome); } catch (e) {}
   ['nNome','nCpf','nModelo','nFipe','nValor','nVend'].forEach(id => $('#' + id).value = '');
   aba = 'incluida';
+  aviso('Ficha incluída com sucesso!');
   carregar();
 };
 
