@@ -560,12 +560,18 @@ function cartao(f) {
 
   // Resultado da análise (visível para os dois depois que a operadora analisa)
   let extra = '';
-  if (f.resultado && !(op && ['incluida', 'analisada'].includes(f.status))) {
+  if (f.resultado === 'pre_aprovado' && !(op && ['incluida', 'analisada'].includes(f.status))) {
     extra += `<div class="bloco"><div class="dados">
       <div><small>Valor pré-aprovado</small><b>${brl(f.valor_pre_aprovado)}</b></div>
       <div><small>Parcelas</small><b>${f.parcelas ?? '—'}</b></div>
       <div><small>Valor da parcela</small><b>${brl(f.valor_parcela)}</b></div>
-    </div>${f.observacoes ? `<div style="margin-top:14px"><small style="${ROTULO}">Observações do Sicoob</small><div class="obs">${esc(f.observacoes)}</div></div>` : ''}</div>`;
+    </div></div>`;
+  }
+  // Observações da operadora: sempre em destaque (verde se pré-aprovada, vermelho se recusada)
+  if (f.observacoes && !(op && ['incluida', 'analisada', 'em_contato'].includes(f.status))) {
+    const cor = f.resultado === 'recusado' ? 'var(--er-bg)' : f.resultado === 'pre_aprovado' ? 'var(--ok-bg)' : 'var(--sup)';
+    const txt = f.resultado === 'recusado' ? 'var(--er)' : f.resultado === 'pre_aprovado' ? 'var(--ok)' : 'var(--texto)';
+    extra += `<div class="bloco" style="background:${cor}"><small style="display:block;color:${txt};font-size:12px;font-weight:700;margin-bottom:4px">${f.resultado === 'recusado' ? 'Motivo / observações do Sicoob' : 'Observações do Sicoob'}</small><div class="obs" style="font-weight:500">${esc(f.observacoes)}</div></div>`;
   }
   if (fi && f.pendencias && f.status === 'em_contato') {
     extra += `<div class="bloco falta"><small style="display:block;color:var(--pe);font-size:11.5px;font-weight:600;margin-bottom:2px">Informações que faltam do cliente (Sicoob)</small><div class="obs">${esc(f.pendencias)}</div></div>`;
@@ -585,7 +591,7 @@ function cartao(f) {
         <div><label>Parcelas (quantidade)</label><input class="parc" type="number" min="1" value="${f.parcelas ?? ''}"></div>
         <div><label>Valor da parcela (R$)</label><input class="vparc moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.valor_parcela)}"></div>
       </div>
-      <div class="campo" style="margin:14px 0 0"><label>Observações (restrições, impedimentos, motivo da recusa...)</label><textarea class="obs-in" placeholder="Ex: nome limpo, sem impedimentos">${esc(f.observacoes ?? '')}</textarea></div>
+      <div class="campo" style="margin:14px 0 0"><label>Observações para a loja (restrições, impedimentos, motivo da recusa, condições da pré-aprovação...)</label><textarea class="obs-in" placeholder="Ex: nome limpo, sem impedimentos">${esc(f.observacoes ?? '')}</textarea></div>
       <div class="acoes"><button class="btn ${f.status === 'analisada' ? 'sec' : ''}" onclick="salvarAnalise('${f.id}', this)">${f.status === 'incluida' ? 'Enviar análise para a loja' : 'Corrigir análise'}</button>
         ${f.status === 'analisada' && f.resultado === 'pre_aprovado' ? `<button class="btn" onclick="opEmContato('${f.id}', this)">Mover para Em contato →</button>` : ''}</div>
     </div>`;
@@ -606,7 +612,7 @@ function cartao(f) {
   if (op && f.status === 'em_contato') {
     acoes = `<div class="bloco" id="c${f.id}">
       <div class="campo" style="margin:0"><label>Informações que faltam do cliente (renda, endereço na cidade...)</label><textarea class="pend-in" placeholder="Ex: falta comprovante de renda">${esc(f.pendencias ?? '')}</textarea></div>
-      <div class="campo" style="margin:14px 0 0"><label>Observações</label><textarea class="obs-in">${esc(f.observacoes ?? '')}</textarea></div>
+      <div class="campo" style="margin:14px 0 0"><label>Observações para a loja</label><textarea class="obs-in">${esc(f.observacoes ?? '')}</textarea></div>
       <div class="acoes">
         <button class="btn sec" onclick="salvarContato('${f.id}', this)">Salvar informações</button>
         <button class="btn" onclick="decisaoGerente('${f.id}', 'sim', this)">Gerente aprovou → Aprovadas</button>
