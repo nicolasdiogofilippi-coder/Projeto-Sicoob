@@ -6,12 +6,23 @@
 <title>Fichas Sicoob</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>(function(){var t=null;try{t=localStorage.getItem("tema")}catch(e){}if(t!=="dark"&&t!=="light")t=(window.matchMedia&&matchMedia("(prefers-color-scheme: dark)").matches)?"dark":"light";document.documentElement.setAttribute("data-theme",t)})()</script>
 <style>
 :root{
   --bg:#ffffff; --sup:#f7f8f9; --borda:#e7eaec; --texto:#0f1b1f; --suave:#667479;
   --acc:#0a7d5f; --acc-h:#086a50; --acc-s:#e8f6f1;
   --ok-bg:#e8f6f1; --ok:#0a7d5f; --er-bg:#fdecea; --er:#c2362b; --pe-bg:#fff4dc; --pe:#9a6200;
   --sombra:0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+  --card:#ffffff; --acc-t:#0a7d5f; --ring:rgba(10,125,95,.14); --topo:rgba(255,255,255,.88);
+  color-scheme:light;
+}
+:root[data-theme="dark"]{
+  --bg:#0e1316; --sup:#151c20; --card:#121a1e; --borda:#26323a; --texto:#e8eef0; --suave:#92a3aa;
+  --acc:#12936e; --acc-h:#0e7d5c; --acc-s:#12352b; --acc-t:#4fd6ad;
+  --ok-bg:#12352b; --ok:#4fd6ad; --er-bg:#3b1b18; --er:#ff8f85; --pe-bg:#3a2e10; --pe:#f2bd4f;
+  --sombra:0 1px 2px rgba(0,0,0,.45), 0 1px 3px rgba(0,0,0,.35);
+  --ring:rgba(79,214,173,.25); --topo:rgba(14,19,22,.88);
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--texto);font:14.5px/1.5 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased}
@@ -19,24 +30,32 @@ button,input,select{font:inherit;color:inherit}
 .oculto{display:none!important}
 
 /* topo */
-.topo{position:sticky;top:0;z-index:5;background:rgba(255,255,255,.88);backdrop-filter:blur(10px);border-bottom:1px solid var(--borda)}
+.topo{position:sticky;top:0;z-index:5;background:var(--topo);backdrop-filter:blur(10px);border-bottom:1px solid var(--borda)}
 .topo-in{max-width:1080px;margin:0 auto;padding:12px 24px;display:flex;align-items:center;gap:12px}
 .marca{display:flex;align-items:center;gap:10px;font-weight:700;font-size:16px;letter-spacing:-.01em}
 .marca i{width:28px;height:28px;border-radius:8px;background:var(--acc);display:grid;place-items:center;color:#fff;font-style:normal;font-size:14px}
-.papel{background:var(--acc-s);color:var(--acc);font-weight:600;font-size:12px;padding:3px 10px;border-radius:99px}
+.papel{background:var(--acc-s);color:var(--acc-t);font-weight:600;font-size:12px;padding:3px 10px;border-radius:99px}
 .sair{margin-left:auto}
+.tema{width:38px;height:38px;padding:0;display:grid;place-items:center;flex:none;border-radius:10px;border:1px solid var(--borda);background:var(--card);color:var(--texto);cursor:pointer;transition:background .15s}
+.tema:hover{background:var(--sup)}
+.tema svg{width:18px;height:18px}
+.tema .sol{display:none}
+:root[data-theme="dark"] .tema .sol{display:block}
+:root[data-theme="dark"] .tema .lua{display:none}
+.login{position:relative}
+.login>.tema{position:absolute;top:16px;right:16px}
 
 /* botões e campos */
 .btn{background:var(--acc);color:#fff;border:0;border-radius:10px;padding:10px 16px;font-weight:600;cursor:pointer;transition:background .15s}
 .btn:hover{background:var(--acc-h)}
-.btn.sec{background:#fff;color:var(--texto);border:1px solid var(--borda)}
+.btn.sec{background:var(--card);color:var(--texto);border:1px solid var(--borda)}
 .btn.sec:hover{background:var(--sup)}
-.btn.perigo{background:#fff;color:var(--er);border:1px solid var(--borda)}
+.btn.perigo{background:var(--card);color:var(--er);border:1px solid var(--borda)}
 .btn.perigo:hover{background:var(--er-bg)}
 .btn.peq{padding:7px 12px;font-size:13px}
 label{display:block;font-size:12px;font-weight:500;color:var(--suave);margin:0 0 5px}
-input,select{width:100%;padding:10px 12px;border:1px solid var(--borda);border-radius:10px;background:#fff;transition:border-color .15s, box-shadow .15s}
-input:focus,select:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,125,95,.14)}
+input,select{width:100%;padding:10px 12px;border:1px solid var(--borda);border-radius:10px;background:var(--card);transition:border-color .15s, box-shadow .15s}
+input:focus,select:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring)}
 button:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 
 /* login */
@@ -52,10 +71,10 @@ main{max-width:1080px;margin:0 auto;padding:24px}
 .faixa{background:var(--pe-bg);color:var(--pe);padding:10px 14px;border-radius:10px;margin-bottom:18px;font-size:13px}
 
 /* nova ficha */
-.novo{border:1px solid var(--borda);border-radius:16px;box-shadow:var(--sombra);margin-bottom:22px;background:#fff}
+.novo{border:1px solid var(--borda);border-radius:16px;box-shadow:var(--sombra);margin-bottom:22px;background:var(--card)}
 .novo summary{cursor:pointer;font-weight:600;padding:16px 20px;list-style:none;display:flex;align-items:center;gap:10px}
 .novo summary::-webkit-details-marker{display:none}
-.novo summary::before{content:'+';display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--acc-s);color:var(--acc);font-weight:700}
+.novo summary::before{content:'+';display:grid;place-items:center;width:24px;height:24px;border-radius:7px;background:var(--acc-s);color:var(--acc-t);font-weight:700}
 .novo[open] summary::before{content:'–'}
 .novo .corpo{padding:0 20px 20px}
 .grade{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px}
@@ -66,12 +85,12 @@ main{max-width:1080px;margin:0 auto;padding:24px}
 /* abas */
 .abas{display:inline-flex;gap:2px;background:var(--sup);border:1px solid var(--borda);padding:4px;border-radius:12px;margin-bottom:18px;max-width:100%;overflow-x:auto}
 .aba{background:none;border:0;padding:8px 16px;border-radius:9px;cursor:pointer;color:var(--suave);font-weight:600;white-space:nowrap}
-.aba.ativa{background:#fff;color:var(--texto);box-shadow:var(--sombra)}
+.aba.ativa{background:var(--card);color:var(--texto);box-shadow:var(--sombra)}
 .aba span{margin-left:8px;font-size:12px;background:var(--borda);color:var(--suave);padding:1px 8px;border-radius:99px}
-.aba.ativa span{background:var(--acc-s);color:var(--acc)}
+.aba.ativa span{background:var(--acc-s);color:var(--acc-t)}
 
 /* fichas */
-.ficha{border:1px solid var(--borda);border-radius:16px;padding:18px 20px;margin-bottom:12px;box-shadow:var(--sombra);background:#fff}
+.ficha{border:1px solid var(--borda);border-radius:16px;padding:18px 20px;margin-bottom:12px;box-shadow:var(--sombra);background:var(--card)}
 .cab{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
 .nome{font-weight:600;font-size:17px;letter-spacing:-.01em}
 .data{color:var(--suave);font-size:12.5px;margin-top:2px}
@@ -88,14 +107,14 @@ main{max-width:1080px;margin:0 auto;padding:24px}
 .acoes{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 .vazio{text-align:center;color:var(--suave);padding:48px 0;border:1px dashed var(--borda);border-radius:16px}
 
-textarea{width:100%;padding:10px 12px;border:1px solid var(--borda);border-radius:10px;background:#fff;font:inherit;color:inherit;resize:vertical;min-height:70px;transition:border-color .15s, box-shadow .15s}
-textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,125,95,.14)}
+textarea{width:100%;padding:10px 12px;border:1px solid var(--borda);border-radius:10px;background:var(--card);font:inherit;color:inherit;resize:vertical;min-height:70px;transition:border-color .15s, box-shadow .15s}
+textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring)}
 .obs{white-space:pre-wrap}
 #toast{position:fixed;top:16px;left:50%;transform:translate(-50%,-140%);z-index:50;background:#0a7d5f;color:#fff;padding:12px 22px;border-radius:12px;font-weight:600;box-shadow:0 8px 24px rgba(10,125,95,.35);transition:transform .35s cubic-bezier(.2,.9,.3,1.2);max-width:calc(100vw - 32px);text-align:center;pointer-events:none}
 #toast.show{transform:translate(-50%,0)}
 @media(max-width:860px){.filtros{grid-template-columns:1fr 1fr}.filtros>:first-child{grid-column:1/-1}.filtros .btn{grid-column:1/-1}}
 /* meta */
-.meta{border:1px solid var(--borda);border-radius:16px;box-shadow:var(--sombra);padding:18px 20px;margin-bottom:22px;background:#fff}
+.meta{border:1px solid var(--borda);border-radius:16px;box-shadow:var(--sombra);padding:18px 20px;margin-bottom:22px;background:var(--card)}
 .meta-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
 .meta h2{margin:0;font-size:16px;letter-spacing:-.01em}
 .meta .mes{width:auto}
@@ -108,12 +127,19 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,12
 .meta-dica{margin-top:12px;font-size:13px;color:var(--suave)}
 .meta-dica.ok{color:var(--ok);font-weight:600}
 @media(max-width:520px){main{padding:16px}.topo-in{padding:10px 16px}}
+.btn:disabled{opacity:.6;cursor:wait}
+.espera{display:inline-block;margin-left:8px;font-size:11.5px;font-weight:600;padding:2px 8px;border-radius:99px;background:var(--sup);color:var(--suave)}
+.espera.alerta{background:var(--pe-bg);color:var(--pe)}
+.novidades{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--acc-s);color:var(--acc-t);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-weight:600;font-size:13.5px}
+.barra-lista{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.aviso-dup{color:var(--pe);font-size:13px;margin-top:10px}
 </style>
 </head>
 <body>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <section id="telaLogin" class="login oculto">
+  <button type="button" class="tema" title="Alternar tema claro e escuro" aria-label="Alternar tema claro e escuro"><svg class="lua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
   <div class="login-box">
     <div class="marca"><i>S</i> Fichas Sicoob</div>
     <h1>Entrar</h1>
@@ -131,6 +157,7 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,12
     <div class="marca"><i>S</i> Fichas Sicoob</div>
     <span class="papel" id="papelTag"></span>
     <button class="btn sec peq sair" id="btnSair">Sair</button>
+    <button type="button" class="tema" title="Alternar tema claro e escuro" aria-label="Alternar tema claro e escuro"><svg class="lua" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg><svg class="sol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
   </div></header>
 
   <main>
@@ -141,14 +168,15 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,12
       <div class="corpo">
         <div class="grade">
           <div><label for="nNome">Nome</label><input id="nNome"></div>
-          <div><label for="nCpf">CPF</label><input id="nCpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
-          <div><label for="nTel">Telefone do cliente (opcional)</label><input id="nTel" class="tel" inputmode="tel" placeholder="(00) 00000-0000"></div>
+          <div><label for="nCpf">CPF</label><input id="nCpf" class="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
           <div><label for="nModelo">Modelo e ano do carro</label><input id="nModelo" placeholder="Onix 1.0 2021"></div>
           <div><label for="nFipe">FIPE (R$)</label><input id="nFipe" class="moeda" inputmode="numeric" placeholder="R$ 0,00"></div>
           <div><label for="nValor">Valor a financiar (R$)</label><input id="nValor" class="moeda" inputmode="numeric" placeholder="R$ 0,00"></div>
           <div><label for="nVend">Vendedor</label><input id="nVend"></div>
           <div><label for="nFi">F&amp;I</label><input id="nFi"></div>
+          <div><label for="nTel">Telefone do cliente (opcional)</label><input id="nTel" class="tel" inputmode="tel" placeholder="(00) 00000-0000"></div>
         </div>
+        <div class="aviso-dup oculto" id="avisoDup"></div>
         <div class="acoes" style="align-items:center"><button class="btn" id="btnSalvarNova">Incluir ficha</button><span class="msg" id="msgNova" style="margin:0"></span></div>
       </div>
     </details>
@@ -179,11 +207,22 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px rgba(10,12
       <button class="btn sec" id="btnLimpar">Limpar</button>
     </div>
 
-    <nav class="abas" id="abas"></nav>
+    <div class="novidades oculto" id="novidades"><span id="novidadesTxt">Há atualizações nas fichas.</span><button class="btn peq" id="btnAtualizar">Atualizar agora</button></div>
+    <div class="barra-lista">
+      <nav class="abas" id="abas"></nav>
+      <button class="btn sec peq oculto" id="btnExportar" title="Baixa as fichas desta aba, com os filtros aplicados, em um arquivo que abre no Excel">Exportar para Excel (CSV)</button>
+    </div>
     <div id="lista"></div>
   </main>
 </div>
 
+<script>
+document.querySelectorAll(".tema").forEach(function(b){b.addEventListener("click",function(){
+  var t=document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark";
+  document.documentElement.setAttribute("data-theme",t);
+  try{localStorage.setItem("tema",t)}catch(e){}
+})});
+</script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <script>
 const SUPABASE_URL = 'https://lhvgbmixwrhybdovgtwo.supabase.co';
@@ -214,6 +253,8 @@ function criarDemo() {
       const b = {
         select: () => b, order: () => b, limit: () => b,
         eq: (c, v) => { filtros.push(r => r[c] === v); return b; },
+        neq: (c, v) => { filtros.push(r => r[c] !== v); return b; },
+        in: (c, vs) => { filtros.push(r => vs.includes(r[c])); return b; },
         ilike: (c, v) => { const q = v.replace(/%/g, '').toLowerCase(); filtros.push(r => String(r[c]).toLowerCase().includes(q)); return b; },
         gte: (c, v) => { filtros.push(r => r[c] >= v); return b; },
         lte: (c, v) => { filtros.push(r => r[c] <= v); return b; },
@@ -253,6 +294,28 @@ document.addEventListener('input', e => {
     : d.length > 6 ? d.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3')
     : d.length > 2 ? d.replace(/(\d{2})(\d{0,5})/, '($1) $2') : d;
 });
+document.addEventListener('input', e => {
+  if (!e.target.classList.contains('cpf')) return;
+  const d = e.target.value.replace(/\D/g, '').slice(0, 11);
+  e.target.value = d.replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d)/, '$1.$2').replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+});
+const soDigitos = t => String(t ?? '').replace(/\D/g, '');
+const cpfFmt = t => { const d = soDigitos(t).padStart(11, '0'); return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4'); };
+function cpfValido(t) {
+  const d = soDigitos(t);
+  if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+  for (const n of [9, 10]) {
+    let s = 0; for (let i = 0; i < n; i++) s += Number(d[i]) * (n + 1 - i);
+    if ((s * 10 % 11) % 10 !== Number(d[n])) return false;
+  }
+  return true;
+}
+// Evita clique duplo: trava o botão enquanto salva (impede ficha duplicada)
+async function travar(btn, fn) {
+  if (!btn || btn.disabled) return;
+  btn.disabled = true;
+  try { await fn(); } finally { btn.disabled = false; }
+}
 let toastT;
 function aviso(txt) {
   const t = $('#toast'); t.textContent = '✓ ' + txt; t.classList.add('show');
@@ -262,7 +325,7 @@ const dataBR = iso => new Date(iso).toLocaleString('pt-BR', {dateStyle:'short', 
 
 async function iniciar() {
   const { data: { session } } = await sb.auth.getSession();
-  if (!session) { $('#telaApp').classList.add('oculto'); $('#telaLogin').classList.remove('oculto'); return; }
+  if (!session) { pararVigia(); $('#telaApp').classList.add('oculto'); $('#telaLogin').classList.remove('oculto'); return; }
   const { data } = await sb.from('perfis').select('papel').maybeSingle();
   if (!data) { await sb.auth.signOut(); $('#msgLogin').textContent = 'Este usuário ainda não tem perfil. Peça para liberarem o acesso.'; $('#telaLogin').classList.remove('oculto'); $('#telaApp').classList.add('oculto'); return; }
   papel = data.papel;
@@ -274,21 +337,24 @@ async function iniciar() {
   $('#blocoMeta').classList.toggle('oculto', papel !== 'fi');
   if (!$('#mesMeta').value) { const d = new Date(); $('#mesMeta').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
   try { $('#nFi').value = localStorage.getItem('fiNome') || ''; } catch (e) {}
+  $('#btnExportar').classList.toggle('oculto', papel !== 'fi');
   aba = 'incluida';
-  carregar();
+  await carregar();
+  iniciarVigia();
 }
 
-$('#btnEntrar').onclick = async () => {
+$('#btnEntrar').onclick = () => travar($('#btnEntrar'), async () => {
   $('#msgLogin').textContent = '';
   const { error } = await sb.auth.signInWithPassword({ email: $('#email').value.trim(), password: $('#senha').value });
   if (error) { $('#msgLogin').textContent = 'E-mail ou senha incorretos.'; return; }
-  iniciar();
-};
+  await iniciar();
+});
 $('#senha').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnEntrar').click(); });
-$('#btnSair').onclick = async () => { await sb.auth.signOut(); $('#senha').value = ''; iniciar(); };
+$('#btnSair').onclick = async () => { pararVigia(); papel = null; document.title = 'Fichas Sicoob'; await sb.auth.signOut(); $('#senha').value = ''; iniciar(); };
 
-async function carregar() {
-  let q = sb.from('fichas').select('*').order('created_at', { ascending: false }).limit(300);
+// Monta a consulta com os filtros da tela
+function consulta() {
+  let q = sb.from('fichas').select('*');
   const nome = $('#busca').value.trim(), vend = $('#bVend').value.trim(), fi = $('#bFi').value.trim();
   if (nome) q = q.ilike('nome', `%${nome}%`);
   if (vend) q = q.ilike('vendedor', `%${vend}%`);
@@ -298,13 +364,74 @@ async function carregar() {
   const de = $('#de').value, ate = $('#ate').value;
   if (de) q = q.gte('created_at', new Date(de + 'T00:00:00').toISOString());
   if (ate) q = q.lte('created_at', new Date(ate + 'T23:59:59.999').toISOString());
-  const { data, error } = await q;
+  return q;
+}
+
+// Fichas em andamento vêm todas (antes, com o limite de 300, as mais antigas sumiam);
+// das concluídas, só as 200 mais recentes.
+async function carregar() {
+  const [abertas, fechadas] = await Promise.all([
+    consulta().neq('status', 'fechada').order('created_at', { ascending: false }),
+    consulta().eq('status', 'fechada').order('updated_at', { ascending: false }).limit(200)
+  ]);
+  const error = abertas.error || fechadas.error;
   if (error) { $('#lista').innerHTML = `<div class="vazio">Não foi possível carregar as fichas: ${esc(error.message)}</div>`; return; }
-  fichas = data;
+  fichas = [...abertas.data, ...fechadas.data];
+  assinatura = assinar(fichas);
   editId = null;
+  $('#novidades').classList.add('oculto');
   render();
   carregarMeta();
 }
+
+// ---------- Atualização automática ----------
+// A tela se atualiza sozinha quando alguém inclui ou analisa uma ficha.
+// Se a pessoa estiver preenchendo algo, não apaga o que ela digitou: mostra um aviso para atualizar.
+let assinatura = '', vigia = null, canal = null;
+const assinar = lista => lista.map(f => f.id + ':' + f.updated_at + ':' + f.status).sort().join('|');
+function editando() {
+  if (editId) return true;
+  const a = document.activeElement;
+  if (a && a.closest && a.closest('#lista') && /INPUT|SELECT|TEXTAREA/.test(a.tagName)) return true;
+  return !!document.querySelector('#lista [data-sujo]');
+}
+document.addEventListener('input', e => { const b = e.target.closest && e.target.closest('#lista .bloco, #lista .ficha'); if (b) b.setAttribute('data-sujo', '1'); });
+async function verificarNovidades() {
+  if (!papel || document.hidden) return;
+  const [a, f] = await Promise.all([
+    consulta().neq('status', 'fechada').select('id,updated_at,status'),
+    consulta().eq('status', 'fechada').select('id,updated_at,status').order('updated_at', { ascending: false }).limit(200)
+  ]);
+  if (a.error || f.error) return;
+  if (assinar([...a.data, ...f.data]) === assinatura) return;
+  if (editando()) {
+    $('#novidadesTxt').textContent = 'Chegaram atualizações nas fichas. Termine o que está fazendo e clique para atualizar.';
+    $('#novidades').classList.remove('oculto');
+  } else {
+    const antes = new Set(fichas.filter(x => x.status === 'incluida').map(x => x.id));
+    await carregar();
+    const novas = fichas.filter(x => x.status === 'incluida' && !antes.has(x.id)).length;
+    if (papel === 'operador' && novas) aviso(novas === 1 ? 'Chegou 1 ficha nova!' : `Chegaram ${novas} fichas novas!`);
+  }
+}
+function iniciarVigia() {
+  pararVigia();
+  vigia = setInterval(verificarNovidades, 30000);
+  if (!DEMO && sb.channel) {
+    try {
+      canal = sb.channel('fichas-mudancas')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'fichas' }, () => { clearTimeout(timer); timer = setTimeout(verificarNovidades, 800); })
+        .subscribe();
+    } catch (e) {}
+  }
+}
+function pararVigia() {
+  clearInterval(vigia); vigia = null;
+  if (canal) { try { sb.removeChannel(canal); } catch (e) {} canal = null; }
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) verificarNovidades(); });
+$('#btnAtualizar').onclick = () => { editId = null; carregar(); };
+
 
 ['busca','bVend','bFi','bRes','de','ate'].forEach(id => $('#' + id).addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(carregar, 300); }));
 $('#btnLimpar').onclick = () => { ['busca','bVend','bFi','bRes','de','ate'].forEach(id => $('#' + id).value = ''); carregar(); };
@@ -314,9 +441,14 @@ async function carregarMeta() {
   const m = $('#mesMeta').value; if (!m) return;
   const [y, mm] = m.split('-').map(Number);
   const ini = new Date(y, mm - 1, 1).toISOString(), fim = new Date(y, mm, 0, 23, 59, 59, 999).toISOString();
-  const { data, error } = await sb.from('fichas').select('id,valor_financiado,resultado,updated_at').eq('status', 'fechada').gte('updated_at', ini).lte('updated_at', fim);
+  // Conta só contrato fechado de verdade: concluída E com aprovação final confirmada pelo Sicoob.
+  // Antes contava qualquer ficha marcada como concluída (inclusive desistências sem resultado).
+  // Usa a coluna fechada_em quando existir; senão cai em updated_at.
+  let r = await sb.from('fichas').select('id,valor_financiado,resultado,aprovacao_final,fechada_em').eq('status', 'fechada').gte('fechada_em', ini).lte('fechada_em', fim);
+  if (r.error) r = await sb.from('fichas').select('id,valor_financiado,resultado,aprovacao_final,updated_at').eq('status', 'fechada').gte('updated_at', ini).lte('updated_at', fim);
+  const { data, error } = r;
   if (error) { $('#mDica').textContent = 'Não foi possível calcular a meta: ' + error.message; return; }
-  const ctr = data.filter(f => f.resultado !== 'recusado');
+  const ctr = data.filter(f => f.aprovacao_final === 'sim');
   const n = ctr.length, total = ctr.reduce((a, f) => a + Number(f.valor_financiado || 0), 0);
   const taxa = n >= META ? TAXA2 : n >= NIVEL1 ? TAXA1 : 0;
   $('#mFechados').textContent = n + ' / ' + META;
@@ -333,7 +465,8 @@ $('#mesMeta').addEventListener('change', carregarMeta);
 
 function editar(id) { editId = id; render(); }
 function cancelarEdicao() { editId = null; render(); }
-async function salvarEdicao(id) {
+async function salvarEdicao(id, btn) { return travar(btn, () => salvarEdicao_(id)); }
+async function salvarEdicao_(id) {
   const el = document.getElementById('e' + id), msg = el.querySelector('.msg');
   const v = {
     nome: el.querySelector('.e-nome').value.trim(),
@@ -346,6 +479,9 @@ async function salvarEdicao(id) {
     telefone: el.querySelector('.e-tel').value.trim() || null
   };
   if (!v.nome || !v.cpf || !v.modelo_ano || !v.fipe || !v.valor_financiado || !v.vendedor || !v.fi_nome) { msg.textContent = 'Preencha todos os campos.'; return; }
+  if (!cpfValido(v.cpf)) { msg.textContent = 'CPF inválido. Confira os números.'; return; }
+  v.cpf = cpfFmt(v.cpf);
+  if (v.valor_financiado > v.fipe * 1.2 && !confirm('O valor a financiar está bem acima da FIPE. Salvar mesmo assim?')) return;
   const { error } = await sb.from('fichas').update(v).eq('id', id);
   if (error) { msg.textContent = 'Erro ao salvar: ' + error.message; return; }
   aviso('Ficha atualizada com sucesso!');
@@ -357,7 +493,7 @@ function cartaoEdicao(f) {
     <div class="nome" style="margin-bottom:14px">Editando ficha</div>
     <div class="grade">
       <div><label>Nome</label><input class="e-nome" value="${esc(f.nome)}"></div>
-      <div><label>CPF</label><input class="e-cpf" inputmode="numeric" maxlength="14" value="${esc(f.cpf)}"></div>
+      <div><label>CPF</label><input class="e-cpf cpf" inputmode="numeric" maxlength="14" value="${esc(f.cpf)}"></div>
       <div><label>Modelo e ano do carro</label><input class="e-modelo" value="${esc(f.modelo_ano)}"></div>
       <div><label>FIPE (R$)</label><input class="e-fipe moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.fipe)}"></div>
       <div><label>Valor a financiar (R$)</label><input class="e-valor moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.valor_financiado)}"></div>
@@ -365,7 +501,7 @@ function cartaoEdicao(f) {
       <div><label>F&amp;I</label><input class="e-fi" value="${esc(f.fi_nome)}"></div>
       <div><label>Telefone do cliente</label><input class="e-tel tel" inputmode="tel" placeholder="(00) 00000-0000" value="${esc(f.telefone ?? '')}"></div>
     </div>
-    <div class="acoes" style="align-items:center"><button class="btn" onclick="salvarEdicao('${f.id}')">Salvar alterações</button><button class="btn sec" onclick="cancelarEdicao()">Cancelar</button><span class="msg" style="margin:0"></span></div>
+    <div class="acoes" style="align-items:center"><button class="btn" onclick="salvarEdicao('${f.id}', this)">Salvar alterações</button><button class="btn sec" onclick="cancelarEdicao()">Cancelar</button><span class="msg" style="margin:0"></span></div>
   </article>`;
 }
 
@@ -373,7 +509,11 @@ function render() {
   $('#abas').innerHTML = ABAS.map(([k, nome]) =>
     `<button class="aba ${k === aba ? 'ativa' : ''}" data-aba="${k}">${nome}<span>${fichas.filter(f => f.status === k).length}</span></button>`).join('');
   document.querySelectorAll('.aba').forEach(b => b.onclick = () => { aba = b.dataset.aba; render(); });
-  const lista = fichas.filter(f => f.status === aba);
+  let lista = fichas.filter(f => f.status === aba);
+  // Operador atende por ordem de chegada: na aba Incluídas, a mais antiga aparece primeiro
+  if (papel === 'operador' && aba === 'incluida') lista = [...lista].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const pendentes = fichas.filter(f => f.status === 'incluida').length;
+  document.title = (papel === 'operador' && pendentes ? `(${pendentes}) ` : '') + 'Fichas Sicoob';
   $('#lista').innerHTML = lista.length ? lista.map(cartao).join('') : '<div class="vazio">Nenhuma ficha nesta categoria.</div>';
 }
 
@@ -391,7 +531,7 @@ function cartao(f) {
       <div><small>Valor a financiar</small><b>${brl(f.valor_financiado)}</b></div>
       <div><small>Vendedor</small><b>${esc(f.vendedor || '—')}</b></div>
       <div><small>F&amp;I</small><b>${esc(f.fi_nome || '—')}</b></div>
-      ${f.telefone || f.status === 'em_contato' ? `<div><small>Telefone</small><b>${esc(f.telefone || '—')}</b></div>` : ''}
+      ${f.telefone || f.status === 'em_contato' || f.status === 'fechada' ? `<div><small>Telefone</small><b>${esc(f.telefone || '—')}</b></div>` : ''}
     </div>`;
 
   let analise = '';
@@ -407,6 +547,11 @@ function cartao(f) {
   if (papel === 'fi' && f.pendencias) {
     analise += `<div class="bloco falta"><small style="display:block;color:var(--pe);font-size:11.5px;font-weight:600;margin-bottom:2px">Informações que faltam (Sicoob)</small><div class="obs">${esc(f.pendencias)}</div></div>`;
   }
+  if (papel === 'fi' && f.status === 'em_contato') {
+    analise += `<div class="bloco" id="t${f.id}"><div class="grade"><div><label>Telefone do cliente</label><input class="tel-in tel" inputmode="tel" placeholder="(00) 00000-0000" value="${esc(f.telefone ?? '')}"></div></div>
+      <div class="acoes"><button class="btn peq" onclick="salvarTelefone('${f.id}')">Salvar telefone</button></div></div>`;
+  }
+
   let acoes = '';
   if (papel === 'operador') {
     acoes = `<div class="bloco" id="f${f.id}">
@@ -425,7 +570,7 @@ function cartao(f) {
       </div>
       <div class="campo" style="margin:14px 0 0"><label>Informações que faltam do cliente (para fechar)</label><textarea class="pend-in" placeholder="Ex: falta comprovante de renda, comprovante de residência...">${esc(f.pendencias ?? '')}</textarea></div>
       <div class="campo" style="margin:14px 0 0"><label>Observações</label><textarea class="obs-in" placeholder="Observações sobre a ficha (aprovada ou recusada)">${esc(f.observacoes ?? '')}</textarea></div>
-      <div class="acoes"><button class="btn" onclick="salvarAnalise('${f.id}')">Salvar análise</button></div>
+      <div class="acoes"><button class="btn" onclick="salvarAnalise('${f.id}', this)">Salvar análise</button></div>
     </div>`;
   } else {
     acoes = `<div class="acoes">
@@ -438,15 +583,24 @@ function cartao(f) {
   }
 
   return `<article class="ficha">
-    <div class="cab"><div><div class="nome">${esc(f.nome)}</div><div class="data">Incluída em ${dataBR(f.created_at)}</div></div>${chip}</div>
+    <div class="cab"><div><div class="nome">${esc(f.nome)}</div><div class="data">Incluída em ${dataBR(f.created_at)}${f.status === 'incluida' ? tempoEspera(f.created_at) : ''}</div></div>${chip}</div>
     ${dados}${analise}${acoes}
   </article>`;
 }
 
-async function salvarAnalise(id) {
+// Mostra há quanto tempo a ficha espera análise (fica amarelo depois de 2 horas)
+function tempoEspera(iso) {
+  const min = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
+  const txt = min < 60 ? `${min} min` : min < 1440 ? `${Math.floor(min / 60)} h` : `${Math.floor(min / 1440)} dia(s)`;
+  return `<span class="espera ${min >= 120 ? 'alerta' : ''}">aguardando há ${txt}</span>`;
+}
+
+async function salvarAnalise(id, btn) { return travar(btn, () => salvarAnalise_(id)); }
+async function salvarAnalise_(id) {
   const el = document.getElementById('f' + id);
   const resultado = el.querySelector('.res').value;
   if (!resultado) { alert('Escolha pré-aprovado ou recusado.'); return; }
+  if (resultado === 'pre_aprovado' && !el.querySelector('.vpre').value) { alert('Informe o valor pré-aprovado.'); return; }
   const v = el.querySelector('.vpre').value, p = el.querySelector('.parc').value, vp = el.querySelector('.vparc').value, a = el.querySelector('.fin').value, ob = el.querySelector('.obs-in').value.trim(), pd = el.querySelector('.pend-in').value.trim();
   const { error } = await sb.from('fichas').update({
     resultado,
@@ -462,7 +616,18 @@ async function salvarAnalise(id) {
   carregar();
 }
 
+async function salvarTelefone(id) {
+  const tel = document.querySelector('#t' + id + ' .tel-in').value.trim();
+  const { error } = await sb.from('fichas').update({ telefone: tel || null }).eq('id', id);
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+  aviso('Telefone salvo com sucesso!');
+  carregar();
+}
+
 async function mudarStatus(id, status) {
+  const f = fichas.find(x => x.id === id);
+  if (status === 'fechada' && f && f.aprovacao_final !== 'sim' &&
+      !confirm('O Sicoob ainda não confirmou a aprovação final desta ficha, então ela não vai contar como contrato na meta. Concluir mesmo assim?')) return;
   const { error } = await sb.from('fichas').update({ status }).eq('id', id);
   if (error) { alert('Erro: ' + error.message); return; }
   aviso({ em_contato: 'Ficha movida para Em contato.', analisada: 'Ficha movida para Analisadas.', fechada: 'Ficha concluída!' }[status] || 'Ficha atualizada.');
@@ -477,7 +642,21 @@ async function excluir(id) {
   carregar();
 }
 
-$('#btnSalvarNova').onclick = async () => {
+// Avisa se já existe ficha em andamento com o mesmo CPF (evita mandar o cliente duas vezes)
+async function fichaRepetida(cpf) {
+  const { data, error } = await sb.from('fichas').select('id,nome,status,created_at').in('cpf', [cpfFmt(cpf), soDigitos(cpf)]).neq('status', 'fechada');
+  return error ? [] : (data || []);
+}
+$('#nCpf').addEventListener('blur', async () => {
+  const c = $('#nCpf').value, av = $('#avisoDup');
+  av.classList.add('oculto');
+  if (!cpfValido(c)) return;
+  const rep = await fichaRepetida(c);
+  if (rep.length) { av.textContent = `Atenção: este CPF já tem ficha em andamento (${rep[0].nome}, incluída em ${dataBR(rep[0].created_at)}).`; av.classList.remove('oculto'); }
+});
+
+$('#btnSalvarNova').onclick = () => travar($('#btnSalvarNova'), salvarNova);
+async function salvarNova() {
   const msg = $('#msgNova'); msg.textContent = '';
   const nova = {
     nome: $('#nNome').value.trim(),
@@ -486,17 +665,42 @@ $('#btnSalvarNova').onclick = async () => {
     fipe: parseMoeda($('#nFipe').value),
     valor_financiado: parseMoeda($('#nValor').value),
     vendedor: $('#nVend').value.trim(),
-    fi_nome: $('#nFi').value.trim(),
-    telefone: $('#nTel').value.trim() || null
+    fi_nome: $('#nFi').value.trim()
   };
-  if (!nova.nome || !nova.cpf || !nova.modelo_ano || !nova.fipe || !nova.valor_financiado || !nova.vendedor || !nova.fi_nome) { msg.textContent = 'Preencha todos os campos.'; return; }
+  const tel = $('#nTel').value.trim();
+  if (tel) nova.telefone = tel;
+  if (!nova.nome || !nova.cpf || !nova.modelo_ano || !nova.fipe || !nova.valor_financiado || !nova.vendedor || !nova.fi_nome) { msg.textContent = 'Preencha todos os campos obrigatórios.'; return; }
+  if (!cpfValido(nova.cpf)) { msg.textContent = 'CPF inválido. Confira os números.'; return; }
+  nova.cpf = cpfFmt(nova.cpf);
+  if (nova.valor_financiado > nova.fipe * 1.2 && !confirm('O valor a financiar está bem acima da FIPE. Incluir mesmo assim?')) return;
+  const rep = await fichaRepetida(nova.cpf);
+  if (rep.length && !confirm(`Este CPF já tem ficha em andamento (${rep[0].nome}). Incluir outra mesmo assim?`)) return;
   const { error } = await sb.from('fichas').insert(nova);
   if (error) { msg.textContent = 'Erro ao incluir: ' + error.message; return; }
   try { localStorage.setItem('fiNome', nova.fi_nome); } catch (e) {}
-  ['nNome','nCpf','nTel','nModelo','nFipe','nValor','nVend'].forEach(id => $('#' + id).value = '');
+  ['nNome','nCpf','nModelo','nFipe','nValor','nVend','nTel'].forEach(id => $('#' + id).value = '');
+  $('#avisoDup').classList.add('oculto');
   aba = 'incluida';
   aviso('Ficha incluída com sucesso!');
   carregar();
+}
+
+// ---------- Exportar para Excel ----------
+// Baixa as fichas da aba atual (com os filtros) em CSV com ; — abre direto no Excel em português.
+$('#btnExportar').onclick = () => {
+  const lista = fichas.filter(f => f.status === aba);
+  if (!lista.length) { alert('Não há fichas nesta aba para exportar.'); return; }
+  const num = v => v == null ? '' : String(v).replace('.', ',');
+  const situacao = f => !f.resultado ? 'AGUARDANDO' : f.resultado === 'recusado' ? 'RECUSADO' : f.aprovacao_final === 'sim' ? 'APROVADO' : 'PRE-APROVADO';
+  const cab = ['DATA','CLIENTE','CPF','VENDEDOR','F&I','TELEFONE','CARRO','FIPE','VALOR A FINANCIAR','SITUACAO SICOOB','VALOR PRE-APROVADO','PARCELAS','VALOR PARCELA','PENDENCIAS','OBSERVACOES'];
+  const linhas = lista.map(f => [new Date(f.created_at).toLocaleDateString('pt-BR'), f.nome, f.cpf, f.vendedor, f.fi_nome, f.telefone, f.modelo_ano, num(f.fipe), num(f.valor_financiado), situacao(f), num(f.valor_pre_aprovado), f.parcelas, num(f.valor_parcela), f.pendencias, f.observacoes]);
+  const cel = v => { const t = String(v ?? ''); return /[;"\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
+  const csv = '\ufeff' + [cab, ...linhas].map(l => l.map(cel).join(';')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `fichas-sicoob-${(ABAS.find(x => x[0] === aba) || [aba, aba])[1].toLowerCase().replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 
 if (DEMO) $('#dicaDemo').classList.remove('oculto');
