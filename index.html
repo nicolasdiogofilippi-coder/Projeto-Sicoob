@@ -193,7 +193,7 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
         <div><small>Ganho da loja</small><b id="mGanho">R$ 0,00</b></div>
       </div>
       <div class="barra"><i id="mBarra" style="width:0"></i></div>
-      <div class="marcas"><span>0</span><span>4 contratos: 3%</span><span>9 contratos: 4%</span></div>
+      <div class="marcas"><span>1 contrato: 2%</span><span>4 contratos: 3%</span><span>9 contratos: 4%</span></div>
       <div class="meta-dica" id="mDica"></div>
     </section>
 
@@ -275,7 +275,7 @@ function criarDemo() {
 const ABAS = [['incluida','Incluídas'],['analisada','Analisadas'],['em_contato','Em contato'],['fechada','Concluídas']];
 const RES = { pre_aprovado: 'Pré-aprovado', recusado: 'Recusado' };
 let papel = null, aba = 'incluida', fichas = [], timer, editId = null;
-const META = 9, NIVEL1 = 4, TAXA1 = 0.03, TAXA2 = 0.04;
+const META = 9, NIVEL1 = 4, TAXA0 = 0.02, TAXA1 = 0.03, TAXA2 = 0.04;
 
 const $ = s => document.querySelector(s);
 const brl = v => v == null ? '—' : Number(v).toLocaleString('pt-BR', {style:'currency', currency:'BRL'});
@@ -441,25 +441,25 @@ async function carregarMeta() {
   const m = $('#mesMeta').value; if (!m) return;
   const [y, mm] = m.split('-').map(Number);
   const ini = new Date(y, mm - 1, 1).toISOString(), fim = new Date(y, mm, 0, 23, 59, 59, 999).toISOString();
-  // Conta só contrato fechado de verdade: concluída E com aprovação final confirmada pelo Sicoob.
-  // Antes contava qualquer ficha marcada como concluída (inclusive desistências sem resultado).
-  // Usa a coluna fechada_em quando existir; senão cai em updated_at.
-  let r = await sb.from('fichas').select('id,valor_financiado,resultado,aprovacao_final,fechada_em').eq('status', 'fechada').gte('fechada_em', ini).lte('fechada_em', fim);
-  if (r.error) r = await sb.from('fichas').select('id,valor_financiado,resultado,aprovacao_final,updated_at').eq('status', 'fechada').gte('updated_at', ini).lte('updated_at', fim);
+  // Conta as fichas concluídas (proposta paga) que não foram recusadas.
+  // Usa a coluna fechada_em quando existir; senão usa updated_at, como antes.
+  let r = await sb.from('fichas').select('id,valor_financiado,resultado,updated_at,fechada_em').eq('status', 'fechada').gte('updated_at', ini);
+  if (r.error) r = await sb.from('fichas').select('id,valor_financiado,resultado,updated_at').eq('status', 'fechada').gte('updated_at', ini);
   const { data, error } = r;
   if (error) { $('#mDica').textContent = 'Não foi possível calcular a meta: ' + error.message; return; }
-  const ctr = data.filter(f => f.aprovacao_final === 'sim');
+  const noMes = f => { const d = f.fechada_em || f.updated_at; return d >= ini && d <= fim; };
+  const ctr = data.filter(f => noMes(f) && f.resultado !== 'recusado');
   const n = ctr.length, total = ctr.reduce((a, f) => a + Number(f.valor_financiado || 0), 0);
-  const taxa = n >= META ? TAXA2 : n >= NIVEL1 ? TAXA1 : 0;
+  const taxa = n >= META ? TAXA2 : n >= NIVEL1 ? TAXA1 : n > 0 ? TAXA0 : 0;
   $('#mFechados').textContent = n + ' / ' + META;
   $('#mTotal').textContent = brl(total);
-  $('#mPerc').textContent = (taxa * 100) + '%';
+  $('#mPerc').textContent = Math.round(taxa * 100) + '%';
   $('#mGanho').textContent = brl(total * taxa);
   $('#mBarra').style.width = Math.min(100, n / META * 100) + '%';
   const d = $('#mDica'); d.classList.remove('ok');
   if (n >= META) { d.textContent = 'Meta batida! 4% sobre o valor financiado de todos os contratos fechados, sem descontos.'; d.classList.add('ok'); }
   else if (n >= NIVEL1) d.textContent = 'Comissão de 3% ativa. Faltam ' + (META - n) + ' contrato(s) para virar 4%.';
-  else d.textContent = 'Faltam ' + (NIVEL1 - n) + ' contrato(s) para ativar os 3% e ' + (META - n) + ' para chegar aos 4%.';
+  else d.textContent = 'Comissão de 2% ativa. Faltam ' + (NIVEL1 - n) + ' contrato(s) para virar 3% e ' + (META - n) + ' para chegar aos 4%.';
 }
 $('#mesMeta').addEventListener('change', carregarMeta);
 
@@ -626,8 +626,8 @@ async function salvarTelefone(id) {
 
 async function mudarStatus(id, status) {
   const f = fichas.find(x => x.id === id);
-  if (status === 'fechada' && f && f.aprovacao_final !== 'sim' &&
-      !confirm('O Sicoob ainda não confirmou a aprovação final desta ficha, então ela não vai contar como contrato na meta. Concluir mesmo assim?')) return;
+  if (status === 'fechada' && f && f.resultado === 'recusado' &&
+      !confirm('Esta ficha foi recusada pelo Sicoob, então não conta na meta. Concluir mesmo assim?')) return;
   const { error } = await sb.from('fichas').update({ status }).eq('id', id);
   if (error) { alert('Erro: ' + error.message); return; }
   aviso({ em_contato: 'Ficha movida para Em contato.', analisada: 'Ficha movida para Analisadas.', fechada: 'Ficha concluída!' }[status] || 'Ficha atualizada.');
