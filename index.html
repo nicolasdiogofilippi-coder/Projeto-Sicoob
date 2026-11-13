@@ -187,7 +187,7 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
         <input type="month" class="mes" id="mesMeta" aria-label="Mês da meta">
       </div>
       <div class="meta-nums">
-        <div><small>Contratos fechados</small><b id="mFechados">0 / 9</b></div>
+        <div><small>Propostas pagas</small><b id="mFechados">0 / 9</b></div>
         <div><small>Total financiado</small><b id="mTotal">R$ 0,00</b></div>
         <div><small>Comissão atual</small><b id="mPerc">0%</b></div>
         <div><small>Ganho da loja</small><b id="mGanho">R$ 0,00</b></div>
@@ -238,7 +238,8 @@ function criarDemo() {
     {id:'2',created_at:t(5),updated_at:t(5),nome:'João Pereira',cpf:'987.654.321-00',modelo_ano:'HB20 1.6 2019',fipe:58000,valor_financiado:35000,vendedor:'Bianca',fi_nome:'Luiz',status:'analisada',resultado:'pre_aprovado',valor_pre_aprovado:32000,parcelas:48,aprovacao_final:null},
     {id:'3',created_at:t(28),updated_at:t(28),nome:'Ana Lima',cpf:'111.222.333-44',modelo_ano:'Creta 2.0 2020',fipe:91000,valor_financiado:60000,vendedor:'Rafael',fi_nome:'Luiz',status:'fechada',resultado:'pre_aprovado',valor_pre_aprovado:58000,parcelas:60,aprovacao_final:'sim'},
     {id:'4',created_at:t(30),updated_at:t(30),nome:'Carlos Dias',cpf:'555.666.777-88',modelo_ano:'Gol 1.6 2015',fipe:34000,valor_financiado:25000,vendedor:'Bianca',fi_nome:'Luiz',status:'analisada',resultado:'recusado',valor_pre_aprovado:null,parcelas:null,aprovacao_final:null},
-    {id:'5',created_at:t(8),updated_at:t(8),nome:'Paula Rocha',cpf:'222.333.444-55',modelo_ano:'Corolla 2.0 2022',fipe:120000,valor_financiado:70000,vendedor:'Rafael',fi_nome:'Luiz',status:'em_contato',resultado:'pre_aprovado',valor_pre_aprovado:68000,parcelas:48,aprovacao_final:null,telefone:'(11) 98765-4321',pendencias:'Falta comprovante de renda'}
+    {id:'5',created_at:t(8),updated_at:t(8),nome:'Paula Rocha',cpf:'222.333.444-55',modelo_ano:'Corolla 2.0 2022',fipe:120000,valor_financiado:70000,vendedor:'Rafael',fi_nome:'Luiz',status:'em_contato',resultado:'pre_aprovado',valor_pre_aprovado:68000,parcelas:48,aprovacao_final:null,telefone:'(11) 98765-4321',pendencias:'Falta comprovante de renda'},
+    {id:'6',created_at:t(50),updated_at:t(3),nome:'Lucas Martins',cpf:'333.444.555-66',modelo_ano:'Kicks 1.6 2021',fipe:95000,valor_financiado:65000,vendedor:'Milico',fi_nome:'Nick',status:'aprovada',resultado:'pre_aprovado',valor_pre_aprovado:65000,parcelas:48,aprovacao_final:'sim',telefone:'(47) 99999-1111',docs_enviados_em:null,pagamento_subido_em:null}
   ];
   let usuario = null;
   const ok = Promise.resolve({ error: null });
@@ -263,7 +264,6 @@ function criarDemo() {
         insert: (n) => { linhas.push({ id: String(Date.now()), created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'incluida', telefone: null, pendencias: null, resultado: null, valor_pre_aprovado: null, parcelas: null, aprovacao_final: null, ...n }); return ok; },
         update: (v) => ({ eq: (c, id) => {
           const r = linhas.find(x => x.id === id); const antes = r.status; Object.assign(r, v); r.updated_at = new Date().toISOString();
-          if (usuario === 'operador' && r.resultado) r.status = r.aprovacao_final === 'sim' ? 'fechada' : (antes === 'em_contato' ? 'em_contato' : 'analisada');
           return ok; } }),
         delete: () => ({ eq: (c, id) => { linhas.splice(linhas.findIndex(x => x.id === id), 1); return ok; } })
       };
@@ -272,7 +272,7 @@ function criarDemo() {
   };
 }
 
-const ABAS = [['incluida','Incluídas'],['analisada','Analisadas'],['em_contato','Em contato'],['fechada','Concluídas']];
+const ABAS = [['incluida','1. Incluídas'],['analisada','2. Pré-aprovadas / recusadas'],['em_contato','3. Em contato'],['aprovada','4. Aprovadas'],['fechada','5. Concluídas (pagas)']];
 const RES = { pre_aprovado: 'Pré-aprovado', recusado: 'Recusado' };
 let papel = null, aba = 'incluida', fichas = [], timer, editId = null;
 const META = 9, NIVEL1 = 4, TAXA0 = 0.02, TAXA1 = 0.03, TAXA2 = 0.04;
@@ -448,7 +448,7 @@ async function carregarMeta() {
   const { data, error } = r;
   if (error) { $('#mDica').textContent = 'Não foi possível calcular a meta: ' + error.message; return; }
   const noMes = f => { const d = f.fechada_em || f.updated_at; return d >= ini && d <= fim; };
-  const ctr = data.filter(f => noMes(f) && f.resultado !== 'recusado');
+  const ctr = data.filter(f => noMes(f) && f.resultado !== 'recusado'); // concluída = proposta paga
   const n = ctr.length, total = ctr.reduce((a, f) => a + Number(f.valor_financiado || 0), 0);
   const taxa = n >= META ? TAXA2 : n >= NIVEL1 ? TAXA1 : n > 0 ? TAXA0 : 0;
   $('#mFechados').textContent = n + ' / ' + META;
@@ -505,23 +505,35 @@ function cartaoEdicao(f) {
   </article>`;
 }
 
+// ---------- Etapas do fluxo ----------
+// 1 Incluída (F&I manda)  →  2 Analisada (operadora pré-aprova ou recusa)  →  3 Em contato (negócio fechado, operadora liga para o cliente)
+// →  4 Aprovada (gerente do Sicoob aprovou; loja preenche TPV e DUT)  →  5 Concluída (pagamento recebido pela loja)
+const ETAPA_CHIP = {
+  incluida: ['pend', 'Aguardando análise'],
+  em_contato: ['pend', 'Em contato — aguardando gerente'],
+  aprovada: ['pre_aprovado', 'Aprovada pelo gerente'],
+  fechada: ['pre_aprovado', 'Paga ✓']
+};
+const ROTULO = 'display:block;color:var(--suave);font-size:11.5px;font-weight:500;margin-bottom:2px';
+
 function render() {
   $('#abas').innerHTML = ABAS.map(([k, nome]) =>
     `<button class="aba ${k === aba ? 'ativa' : ''}" data-aba="${k}">${nome}<span>${fichas.filter(f => f.status === k).length}</span></button>`).join('');
   document.querySelectorAll('.aba').forEach(b => b.onclick = () => { aba = b.dataset.aba; render(); });
   let lista = fichas.filter(f => f.status === aba);
-  // Operador atende por ordem de chegada: na aba Incluídas, a mais antiga aparece primeiro
-  if (papel === 'operador' && aba === 'incluida') lista = [...lista].sort((a, b) => a.created_at.localeCompare(b.created_at));
-  const pendentes = fichas.filter(f => f.status === 'incluida').length;
-  document.title = (papel === 'operador' && pendentes ? `(${pendentes}) ` : '') + 'Fichas Sicoob';
-  $('#lista').innerHTML = lista.length ? lista.map(cartao).join('') : '<div class="vazio">Nenhuma ficha nesta categoria.</div>';
+  // Operadora atende por ordem de chegada nas etapas em que ela tem que agir
+  if (papel === 'operador' && ['incluida', 'em_contato', 'aprovada'].includes(aba)) lista = [...lista].sort((a, b) => a.created_at.localeCompare(b.created_at));
+  const pendOp = fichas.filter(f => f.status === 'incluida' || (f.status === 'aprovada' && f.docs_enviados_em && !f.pagamento_subido_em)).length;
+  document.title = (papel === 'operador' && pendOp ? `(${pendOp}) ` : '') + 'Fichas Sicoob';
+  $('#lista').innerHTML = lista.length ? lista.map(cartao).join('') : '<div class="vazio">Nenhuma ficha nesta etapa.</div>';
 }
 
 function cartao(f) {
   if (papel === 'fi' && editId === f.id) return cartaoEdicao(f);
-  const chip = f.resultado
-    ? `<span class="chip ${f.resultado}">${RES[f.resultado]}</span>`
-    : '<span class="chip pend">Aguardando análise</span>';
+  const op = papel === 'operador', fi = papel === 'fi';
+  const [cls, txt] = f.status === 'analisada' && f.resultado ? [f.resultado, RES[f.resultado]] : (ETAPA_CHIP[f.status] || ['pend', f.status]);
+  const chip = `<span class="chip ${cls}">${txt}</span>`;
+  const mostraTel = f.telefone || ['em_contato', 'aprovada', 'fechada'].includes(f.status);
 
   const dados = `
     <div class="dados">
@@ -531,29 +543,26 @@ function cartao(f) {
       <div><small>Valor a financiar</small><b>${brl(f.valor_financiado)}</b></div>
       <div><small>Vendedor</small><b>${esc(f.vendedor || '—')}</b></div>
       <div><small>F&amp;I</small><b>${esc(f.fi_nome || '—')}</b></div>
-      ${f.telefone || f.status === 'em_contato' || f.status === 'fechada' ? `<div><small>Telefone</small><b>${esc(f.telefone || '—')}</b></div>` : ''}
+      ${mostraTel ? `<div><small>Telefone</small><b>${esc(f.telefone || '—')}</b></div>` : ''}
     </div>`;
 
-  let analise = '';
-  if (f.resultado && papel === 'fi') {
-    analise = `<div class="bloco"><div class="dados">
+  // Resultado da análise (visível para os dois depois que a operadora analisa)
+  let extra = '';
+  if (f.resultado && !(op && ['incluida', 'analisada'].includes(f.status))) {
+    extra += `<div class="bloco"><div class="dados">
       <div><small>Valor pré-aprovado</small><b>${brl(f.valor_pre_aprovado)}</b></div>
       <div><small>Parcelas</small><b>${f.parcelas ?? '—'}</b></div>
       <div><small>Valor da parcela</small><b>${brl(f.valor_parcela)}</b></div>
-      <div><small>Aprovação final</small><b>${f.aprovacao_final === 'sim' ? 'Confirmada' : f.aprovacao_final === 'nao' ? 'Não confirmada' : 'Pendente'}</b></div>
-    </div>${f.observacoes ? `<div style="margin-top:14px"><small style="display:block;color:var(--suave);font-size:11.5px;font-weight:500;margin-bottom:2px">Observações do Sicoob</small><div class="obs">${esc(f.observacoes)}</div></div>` : ''}</div>`;
+    </div>${f.observacoes ? `<div style="margin-top:14px"><small style="${ROTULO}">Observações do Sicoob</small><div class="obs">${esc(f.observacoes)}</div></div>` : ''}</div>`;
   }
-
-  if (papel === 'fi' && f.pendencias) {
-    analise += `<div class="bloco falta"><small style="display:block;color:var(--pe);font-size:11.5px;font-weight:600;margin-bottom:2px">Informações que faltam (Sicoob)</small><div class="obs">${esc(f.pendencias)}</div></div>`;
-  }
-  if (papel === 'fi' && f.status === 'em_contato') {
-    analise += `<div class="bloco" id="t${f.id}"><div class="grade"><div><label>Telefone do cliente</label><input class="tel-in tel" inputmode="tel" placeholder="(00) 00000-0000" value="${esc(f.telefone ?? '')}"></div></div>
-      <div class="acoes"><button class="btn peq" onclick="salvarTelefone('${f.id}')">Salvar telefone</button></div></div>`;
+  if (fi && f.pendencias && f.status === 'em_contato') {
+    extra += `<div class="bloco falta"><small style="display:block;color:var(--pe);font-size:11.5px;font-weight:600;margin-bottom:2px">Informações que faltam do cliente (Sicoob)</small><div class="obs">${esc(f.pendencias)}</div></div>`;
   }
 
   let acoes = '';
-  if (papel === 'operador') {
+
+  // ---- 1 e 2: Incluída / Analisada ----
+  if (op && ['incluida', 'analisada'].includes(f.status)) {
     acoes = `<div class="bloco" id="f${f.id}">
       <div class="grade">
         <div><label>Resultado</label>
@@ -563,76 +572,158 @@ function cartao(f) {
         <div><label>Valor pré-aprovado (R$)</label><input class="vpre moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.valor_pre_aprovado)}"></div>
         <div><label>Parcelas (quantidade)</label><input class="parc" type="number" min="1" value="${f.parcelas ?? ''}"></div>
         <div><label>Valor da parcela (R$)</label><input class="vparc moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.valor_parcela)}"></div>
-        <div><label>Aprovação final</label>
-          <select class="fin"><option value="">Pendente</option>
-            <option value="sim" ${f.aprovacao_final === 'sim' ? 'selected' : ''}>Confirmada</option>
-            <option value="nao" ${f.aprovacao_final === 'nao' ? 'selected' : ''}>Não confirmada</option></select></div>
       </div>
-      <div class="campo" style="margin:14px 0 0"><label>Informações que faltam do cliente (para fechar)</label><textarea class="pend-in" placeholder="Ex: falta comprovante de renda, comprovante de residência...">${esc(f.pendencias ?? '')}</textarea></div>
-      <div class="campo" style="margin:14px 0 0"><label>Observações</label><textarea class="obs-in" placeholder="Observações sobre a ficha (aprovada ou recusada)">${esc(f.observacoes ?? '')}</textarea></div>
-      <div class="acoes"><button class="btn" onclick="salvarAnalise('${f.id}', this)">Salvar análise</button></div>
-    </div>`;
-  } else {
-    acoes = `<div class="acoes">
-      ${f.status !== 'fechada' ? `<button class="btn sec peq" onclick="editar('${f.id}')">Editar</button>` : ''}
-      ${f.status === 'analisada' && f.resultado === 'pre_aprovado' ? `<button class="btn peq" onclick="mudarStatus('${f.id}','em_contato')">Mover para Em contato</button>` : ''}
-      ${f.status === 'em_contato' ? `<button class="btn sec peq" onclick="mudarStatus('${f.id}','analisada')">Voltar para Analisadas</button>` : ''}
-      ${f.status !== 'fechada' ? `<button class="btn sec peq" onclick="mudarStatus('${f.id}','fechada')">Marcar como concluída</button>` : `<button class="btn sec peq" onclick="mudarStatus('${f.id}','em_contato')">Reabrir</button>`}
-      <button class="btn perigo peq" onclick="excluir('${f.id}')">Excluir</button>
+      <div class="campo" style="margin:14px 0 0"><label>Observações (restrições, impedimentos, motivo da recusa...)</label><textarea class="obs-in" placeholder="Ex: nome limpo, sem impedimentos">${esc(f.observacoes ?? '')}</textarea></div>
+      <div class="acoes"><button class="btn" onclick="salvarAnalise('${f.id}', this)">${f.status === 'incluida' ? 'Enviar análise para a loja' : 'Corrigir análise'}</button></div>
     </div>`;
   }
+  if (fi && f.status === 'incluida') {
+    acoes = `<div class="acoes"><button class="btn sec peq" onclick="editar('${f.id}')">Editar</button><button class="btn perigo peq" onclick="excluir('${f.id}')">Excluir</button></div>`;
+  }
+  if (fi && f.status === 'analisada') {
+    acoes = f.resultado === 'pre_aprovado'
+      ? `<div class="bloco" id="t${f.id}"><small style="${ROTULO}">Fechou negócio? Informe o telefone do cliente para o Sicoob entrar em contato.</small>
+          <div class="grade"><div><label>Telefone do cliente</label><input class="tel-in tel" inputmode="tel" placeholder="(00) 00000-0000" value="${esc(f.telefone ?? '')}"></div></div>
+          <div class="acoes"><button class="btn" onclick="enviarContato('${f.id}', this)">Negócio fechado — enviar para contato</button>
+          <button class="btn sec peq" onclick="editar('${f.id}')">Editar</button><button class="btn perigo peq" onclick="excluir('${f.id}')">Excluir</button></div></div>`
+      : `<div class="acoes"><button class="btn sec peq" onclick="editar('${f.id}')">Editar</button><button class="btn perigo peq" onclick="excluir('${f.id}')">Excluir</button></div>`;
+  }
 
+  // ---- 3: Em contato ----
+  if (op && f.status === 'em_contato') {
+    acoes = `<div class="bloco" id="c${f.id}">
+      <div class="campo" style="margin:0"><label>Informações que faltam do cliente (renda, endereço na cidade...)</label><textarea class="pend-in" placeholder="Ex: falta comprovante de renda">${esc(f.pendencias ?? '')}</textarea></div>
+      <div class="campo" style="margin:14px 0 0"><label>Observações</label><textarea class="obs-in">${esc(f.observacoes ?? '')}</textarea></div>
+      <div class="acoes">
+        <button class="btn sec" onclick="salvarContato('${f.id}', this)">Salvar informações</button>
+        <button class="btn" onclick="decisaoGerente('${f.id}', 'sim', this)">Gerente aprovou ✓</button>
+        <button class="btn perigo" onclick="decisaoGerente('${f.id}', 'nao', this)">Gerente recusou</button>
+      </div></div>`;
+  }
+  if (fi && f.status === 'em_contato') {
+    acoes = `<div class="bloco" id="t${f.id}"><div class="grade"><div><label>Telefone do cliente</label><input class="tel-in tel" inputmode="tel" placeholder="(00) 00000-0000" value="${esc(f.telefone ?? '')}"></div></div>
+      <div class="acoes"><button class="btn sec peq" onclick="salvarTelefone('${f.id}', this)">Salvar telefone</button>
+      <button class="btn sec peq" onclick="mudarStatus('${f.id}','analisada')">Voltar para Analisadas</button>
+      <button class="btn sec peq" onclick="editar('${f.id}')">Editar</button></div></div>`;
+  }
+
+  // ---- 4: Aprovada (TPV e DUT → pagamento) ----
+  if (f.status === 'aprovada') {
+    const docs = f.docs_enviados_em ? `<b style="color:var(--ok)">✓ TPV e DUT enviados em ${dataBR(f.docs_enviados_em)}</b>` : `<b style="color:var(--pe)">Aguardando a loja preencher TPV e DUT</b>`;
+    const pag = f.pagamento_subido_em ? `<b style="color:var(--ok)">✓ Pagamento subido pelo Sicoob em ${dataBR(f.pagamento_subido_em)}</b>` : `<b style="color:var(--suave)">Pagamento ainda não subido</b>`;
+    acoes = `<div class="bloco" id="a${f.id}"><div class="dados"><div><small>Documentos</small>${docs}</div><div><small>Pagamento</small>${pag}</div></div>`;
+    if (fi && !f.docs_enviados_em) {
+      acoes += `<div class="acoes" style="align-items:center">
+        <label style="display:flex;gap:6px;align-items:center;margin:0;font-size:13.5px;color:var(--texto)"><input type="checkbox" class="ck-tpv" style="width:auto"> TPV preenchida</label>
+        <label style="display:flex;gap:6px;align-items:center;margin:0;font-size:13.5px;color:var(--texto)"><input type="checkbox" class="ck-dut" style="width:auto"> DUT preenchido</label>
+        <button class="btn" onclick="enviarDocs('${f.id}', this)">Enviar TPV e DUT ao Sicoob</button></div>`;
+    }
+    if (op && f.docs_enviados_em && !f.pagamento_subido_em) {
+      acoes += `<div class="acoes"><button class="btn" onclick="subirPagamento('${f.id}', this)">Pagamento da proposta subido</button></div>`;
+    }
+    if (fi) {
+      acoes += `<div class="acoes"><button class="btn ${f.pagamento_subido_em ? '' : 'sec'}" onclick="mudarStatus('${f.id}','fechada')">Pagamento recebido — concluir</button></div>`;
+    }
+    acoes += `</div>`;
+  }
+
+  // ---- 5: Concluída ----
+  if (fi && f.status === 'fechada') {
+    acoes = `<div class="acoes"><button class="btn sec peq" onclick="mudarStatus('${f.id}','aprovada')">Reabrir</button></div>`;
+  }
+
+  const tempo = f.status === 'incluida' ? tempoEspera(f.created_at) : (f.status === 'em_contato' ? tempoEspera(f.updated_at) : '');
   return `<article class="ficha">
-    <div class="cab"><div><div class="nome">${esc(f.nome)}</div><div class="data">Incluída em ${dataBR(f.created_at)}${f.status === 'incluida' ? tempoEspera(f.created_at) : ''}</div></div>${chip}</div>
-    ${dados}${analise}${acoes}
+    <div class="cab"><div><div class="nome">${esc(f.nome)}</div><div class="data">Incluída em ${dataBR(f.created_at)}${tempo}</div></div>${chip}</div>
+    ${dados}${extra}${acoes}
   </article>`;
 }
 
-// Mostra há quanto tempo a ficha espera análise (fica amarelo depois de 2 horas)
+// Mostra há quanto tempo a ficha está parada na etapa (fica amarelo depois de 2 horas)
 function tempoEspera(iso) {
   const min = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000));
   const txt = min < 60 ? `${min} min` : min < 1440 ? `${Math.floor(min / 60)} h` : `${Math.floor(min / 1440)} dia(s)`;
   return `<span class="espera ${min >= 120 ? 'alerta' : ''}">aguardando há ${txt}</span>`;
 }
 
-async function salvarAnalise(id, btn) { return travar(btn, () => salvarAnalise_(id)); }
-async function salvarAnalise_(id) {
-  const el = document.getElementById('f' + id);
+// Salva no banco e trata o erro de quando o banco ainda não foi atualizado para as novas etapas
+async function gravar(id, valores, ok, irPara) {
+  const { error } = await sb.from('fichas').update(valores).eq('id', id);
+  if (error) {
+    const falta = /aprovada|docs_enviados_em|pagamento_subido_em|check constraint|enum/i.test(error.message);
+    alert(falta ? 'O banco de dados ainda não foi preparado para as novas etapas. Peça para rodar a PARTE 6 do arquivo seguranca-supabase.sql no Supabase.\n\nDetalhe: ' + error.message : 'Erro ao salvar: ' + error.message);
+    return false;
+  }
+  aviso(ok);
+  if (irPara) aba = irPara;
+  carregar();
+  return true;
+}
+
+async function salvarAnalise(id, btn) { return travar(btn, async () => {
+  const el = document.getElementById('f' + id), f = fichas.find(x => x.id === id);
   const resultado = el.querySelector('.res').value;
   if (!resultado) { alert('Escolha pré-aprovado ou recusado.'); return; }
-  if (resultado === 'pre_aprovado' && !el.querySelector('.vpre').value) { alert('Informe o valor pré-aprovado.'); return; }
-  const v = el.querySelector('.vpre').value, p = el.querySelector('.parc').value, vp = el.querySelector('.vparc').value, a = el.querySelector('.fin').value, ob = el.querySelector('.obs-in').value.trim(), pd = el.querySelector('.pend-in').value.trim();
-  const { error } = await sb.from('fichas').update({
-    resultado,
+  const v = el.querySelector('.vpre').value, p = el.querySelector('.parc').value, vp = el.querySelector('.vparc').value, ob = el.querySelector('.obs-in').value.trim();
+  if (resultado === 'pre_aprovado' && !v) { alert('Informe o valor pré-aprovado.'); return; }
+  await gravar(id, {
+    resultado, status: 'analisada',
     valor_pre_aprovado: v ? parseMoeda(v) : null,
     parcelas: p ? parseInt(p, 10) : null,
     valor_parcela: vp ? parseMoeda(vp) : null,
-    observacoes: ob || null,
-    pendencias: pd || null,
-    aprovacao_final: a || null
-  }).eq('id', id);
-  if (error) { alert('Erro ao salvar: ' + error.message); return; }
-  aviso('Análise salva com sucesso!');
-  carregar();
-}
+    observacoes: ob || null
+  }, f && f.status === 'incluida' ? 'Análise enviada para a loja!' : 'Análise corrigida!');
+}); }
 
-async function salvarTelefone(id) {
+async function enviarContato(id, btn) { return travar(btn, async () => {
   const tel = document.querySelector('#t' + id + ' .tel-in').value.trim();
-  const { error } = await sb.from('fichas').update({ telefone: tel || null }).eq('id', id);
-  if (error) { alert('Erro ao salvar: ' + error.message); return; }
-  aviso('Telefone salvo com sucesso!');
-  carregar();
-}
+  if (soDigitos(tel).length < 10) { alert('Informe o telefone do cliente com DDD para o Sicoob entrar em contato.'); return; }
+  await gravar(id, { telefone: tel, status: 'em_contato' }, 'Ficha enviada para contato do Sicoob!', 'em_contato');
+}); }
+
+async function salvarTelefone(id, btn) { return travar(btn, async () => {
+  const tel = document.querySelector('#t' + id + ' .tel-in').value.trim();
+  await gravar(id, { telefone: tel || null }, 'Telefone salvo!');
+}); }
+
+async function salvarContato(id, btn) { return travar(btn, async () => {
+  const el = document.getElementById('c' + id);
+  await gravar(id, { pendencias: el.querySelector('.pend-in').value.trim() || null, observacoes: el.querySelector('.obs-in').value.trim() || null }, 'Informações salvas!');
+}); }
+
+async function decisaoGerente(id, decisao, btn) { return travar(btn, async () => {
+  const el = document.getElementById('c' + id);
+  const base = { pendencias: el.querySelector('.pend-in').value.trim() || null, observacoes: el.querySelector('.obs-in').value.trim() || null };
+  if (decisao === 'sim') {
+    if (!confirm('Confirmar que o gerente APROVOU esta ficha? A loja vai preencher a TPV e o DUT.')) return;
+    await gravar(id, { ...base, aprovacao_final: 'sim', status: 'aprovada' }, 'Ficha aprovada pelo gerente!', 'aprovada');
+  } else {
+    if (!base.observacoes && !confirm('Recusar sem escrever o motivo nas observações?')) return;
+    if (!confirm('Confirmar que o gerente RECUSOU esta ficha?')) return;
+    await gravar(id, { ...base, aprovacao_final: 'nao', resultado: 'recusado', status: 'analisada' }, 'Ficha marcada como recusada pelo gerente.', 'analisada');
+  }
+}); }
+
+async function enviarDocs(id, btn) { return travar(btn, async () => {
+  const el = document.getElementById('a' + id);
+  if (!el.querySelector('.ck-tpv').checked || !el.querySelector('.ck-dut').checked) { alert('Marque TPV e DUT como preenchidos antes de enviar.'); return; }
+  await gravar(id, { docs_enviados_em: new Date().toISOString() }, 'TPV e DUT enviados ao Sicoob!');
+}); }
+
+async function subirPagamento(id, btn) { return travar(btn, async () => {
+  if (!confirm('Confirmar que o pagamento desta proposta foi subido?')) return;
+  await gravar(id, { pagamento_subido_em: new Date().toISOString() }, 'Pagamento marcado como subido!');
+}); }
 
 async function mudarStatus(id, status) {
   const f = fichas.find(x => x.id === id);
-  if (status === 'fechada' && f && f.resultado === 'recusado' &&
-      !confirm('Esta ficha foi recusada pelo Sicoob, então não conta na meta. Concluir mesmo assim?')) return;
-  const { error } = await sb.from('fichas').update({ status }).eq('id', id);
-  if (error) { alert('Erro: ' + error.message); return; }
-  aviso({ em_contato: 'Ficha movida para Em contato.', analisada: 'Ficha movida para Analisadas.', fechada: 'Ficha concluída!' }[status] || 'Ficha atualizada.');
-  aba = status;
-  carregar();
+  // Concluída = a loja recebeu o pagamento. Só sai da etapa Aprovada.
+  if (status === 'fechada') {
+    if (!f || f.status !== 'aprovada') { alert('Só dá para concluir uma ficha aprovada pelo gerente do Sicoob.'); return; }
+    const obs = !f.docs_enviados_em ? '\n\nObs.: a TPV e o DUT ainda não foram marcados como enviados.' : !f.pagamento_subido_em ? '\n\nObs.: o Sicoob ainda não marcou o pagamento como subido.' : '';
+    if (!confirm('Confirmar que a loja já RECEBEU o pagamento desta proposta? Ela vai contar na meta do mês.' + obs)) return;
+  }
+  await gravar(id, { status }, { em_contato: 'Ficha movida para Em contato.', analisada: 'Ficha movida para Analisadas.', aprovada: 'Ficha reaberta em Aprovadas.', fechada: 'Proposta paga! Contou na meta do mês.' }[status] || 'Ficha atualizada.', status);
 }
 
 async function excluir(id) {
@@ -691,7 +782,7 @@ $('#btnExportar').onclick = () => {
   const lista = fichas.filter(f => f.status === aba);
   if (!lista.length) { alert('Não há fichas nesta aba para exportar.'); return; }
   const num = v => v == null ? '' : String(v).replace('.', ',');
-  const situacao = f => !f.resultado ? 'AGUARDANDO' : f.resultado === 'recusado' ? 'RECUSADO' : f.aprovacao_final === 'sim' ? 'APROVADO' : 'PRE-APROVADO';
+  const situacao = f => f.status === 'fechada' ? 'PAGA' : f.status === 'aprovada' ? 'APROVADA PELO GERENTE' : f.status === 'em_contato' ? 'EM CONTATO' : !f.resultado ? 'AGUARDANDO' : f.resultado === 'recusado' ? 'RECUSADO' : 'PRE-APROVADO';
   const cab = ['DATA','CLIENTE','CPF','VENDEDOR','F&I','TELEFONE','CARRO','FIPE','VALOR A FINANCIAR','SITUACAO SICOOB','VALOR PRE-APROVADO','PARCELAS','VALOR PARCELA','PENDENCIAS','OBSERVACOES'];
   const linhas = lista.map(f => [new Date(f.created_at).toLocaleDateString('pt-BR'), f.nome, f.cpf, f.vendedor, f.fi_nome, f.telefone, f.modelo_ano, num(f.fipe), num(f.valor_financiado), situacao(f), num(f.valor_pre_aprovado), f.parcelas, num(f.valor_parcela), f.pendencias, f.observacoes]);
   const cel = v => { const t = String(v ?? ''); return /[;"\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
