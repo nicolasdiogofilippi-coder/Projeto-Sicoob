@@ -574,7 +574,8 @@ function cartao(f) {
         <div><label>Valor da parcela (R$)</label><input class="vparc moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.valor_parcela)}"></div>
       </div>
       <div class="campo" style="margin:14px 0 0"><label>Observações (restrições, impedimentos, motivo da recusa...)</label><textarea class="obs-in" placeholder="Ex: nome limpo, sem impedimentos">${esc(f.observacoes ?? '')}</textarea></div>
-      <div class="acoes"><button class="btn" onclick="salvarAnalise('${f.id}', this)">${f.status === 'incluida' ? 'Enviar análise para a loja' : 'Corrigir análise'}</button></div>
+      <div class="acoes"><button class="btn ${f.status === 'analisada' ? 'sec' : ''}" onclick="salvarAnalise('${f.id}', this)">${f.status === 'incluida' ? 'Enviar análise para a loja' : 'Corrigir análise'}</button>
+        ${f.status === 'analisada' && f.resultado === 'pre_aprovado' ? `<button class="btn" onclick="opEmContato('${f.id}', this)">Mover para Em contato →</button>` : ''}</div>
     </div>`;
   }
   if (fi && f.status === 'incluida') {
@@ -596,7 +597,7 @@ function cartao(f) {
       <div class="campo" style="margin:14px 0 0"><label>Observações</label><textarea class="obs-in">${esc(f.observacoes ?? '')}</textarea></div>
       <div class="acoes">
         <button class="btn sec" onclick="salvarContato('${f.id}', this)">Salvar informações</button>
-        <button class="btn" onclick="decisaoGerente('${f.id}', 'sim', this)">Gerente aprovou ✓</button>
+        <button class="btn" onclick="decisaoGerente('${f.id}', 'sim', this)">Gerente aprovou → Aprovadas</button>
         <button class="btn perigo" onclick="decisaoGerente('${f.id}', 'nao', this)">Gerente recusou</button>
       </div></div>`;
   }
@@ -618,8 +619,10 @@ function cartao(f) {
         <label style="display:flex;gap:6px;align-items:center;margin:0;font-size:13.5px;color:var(--texto)"><input type="checkbox" class="ck-dut" style="width:auto"> DUT preenchido</label>
         <button class="btn" onclick="enviarDocs('${f.id}', this)">Enviar TPV e DUT ao Sicoob</button></div>`;
     }
-    if (op && f.docs_enviados_em && !f.pagamento_subido_em) {
-      acoes += `<div class="acoes"><button class="btn" onclick="subirPagamento('${f.id}', this)">Pagamento da proposta subido</button></div>`;
+    if (op) {
+      acoes += `<div class="acoes">
+        ${f.docs_enviados_em && !f.pagamento_subido_em ? `<button class="btn sec" onclick="subirPagamento('${f.id}', this)">Pagamento da proposta subido</button>` : ''}
+        <button class="btn" onclick="mudarStatus('${f.id}','fechada')">Mover para Concluídas →</button></div>`;
     }
     if (fi) {
       acoes += `<div class="acoes"><button class="btn ${f.pagamento_subido_em ? '' : 'sec'}" onclick="mudarStatus('${f.id}','fechada')">Pagamento recebido — concluir</button></div>`;
@@ -673,6 +676,13 @@ async function salvarAnalise(id, btn) { return travar(btn, async () => {
     valor_parcela: vp ? parseMoeda(vp) : null,
     observacoes: ob || null
   }, f && f.status === 'incluida' ? 'Análise enviada para a loja!' : 'Análise corrigida!');
+}); }
+
+// Operadora move a pré-aprovada para Em contato
+async function opEmContato(id, btn) { return travar(btn, async () => {
+  const f = fichas.find(x => x.id === id);
+  if (!f.telefone && !confirm('Esta ficha ainda não tem telefone do cliente. Mover para Em contato mesmo assim?')) return;
+  await gravar(id, { status: 'em_contato' }, 'Ficha movida para Em contato!', 'em_contato');
 }); }
 
 async function enviarContato(id, btn) { return travar(btn, async () => {
