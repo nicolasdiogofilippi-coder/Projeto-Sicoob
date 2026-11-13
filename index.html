@@ -133,7 +133,12 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
 .novidades{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--acc-s);color:var(--acc-t);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-weight:600;font-size:13.5px}
 .barra-lista{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .aviso-dup{color:var(--pe);font-size:13px;margin-top:10px}
-.fipe-busca{background:var(--sup);border-radius:12px;padding:14px 16px;margin-bottom:16px}
+.fipe-busca{background:var(--sup);border-radius:12px;padding:12px 16px;margin-bottom:16px}
+.placa-linha{display:flex;gap:10px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap}
+.placa-linha>div{width:180px}
+#estoqueRes{margin:0 0 14px;font-size:13.5px}
+.carro-ok{background:var(--ok-bg);color:var(--ok);border-radius:10px;padding:10px 14px}
+.carro-ok b{color:var(--texto)}
 </style>
 </head>
 <body>
@@ -167,15 +172,22 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
     <details class="novo oculto" id="blocoNovo">
       <summary>Nova ficha</summary>
       <div class="corpo">
-        <div class="fipe-busca">
-          <small style="display:block;color:var(--suave);font-size:12px;font-weight:600;margin-bottom:8px">Buscar na tabela FIPE (preenche o modelo e a FIPE sozinho)</small>
+        <div class="placa-linha">
+          <div><label for="nPlaca">Placa do carro</label><input id="nPlaca" maxlength="8" placeholder="ABC1D23" style="text-transform:uppercase"></div>
+          <button class="btn" id="btnEstoque" type="button">Buscar no estoque</button>
+        </div>
+        <div id="estoqueRes" class="oculto"></div>
+        <details class="fipe-busca" id="fipeManual">
+          <summary style="cursor:pointer;color:var(--suave);font-size:12.5px;font-weight:600">Carro fora do estoque? Buscar na tabela FIPE</summary>
+          <div style="margin-top:10px">
           <div class="grade">
             <div><label for="fMarca">Marca</label><select id="fMarca"><option value="">Carregando...</option></select></div>
             <div><label for="fModelo">Modelo (digite para filtrar)</label><input id="fModelo" list="fModelos" placeholder="Escolha a marca primeiro" disabled><datalist id="fModelos"></datalist></div>
             <div><label for="fAno">Ano do modelo</label><select id="fAno" disabled><option value="">—</option></select></div>
           </div>
           <div id="fipeMsg" class="oculto" style="margin-top:8px;font-size:13px"></div>
-        </div>
+          </div>
+        </details>
         <div class="grade">
           <div><label for="nNome">Nome</label><input id="nNome"></div>
           <div><label for="nCpf">CPF</label><input id="nCpf" class="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
@@ -184,7 +196,6 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
           <div><label for="nValor">Valor a financiar (R$)</label><input id="nValor" class="moeda" inputmode="numeric" placeholder="R$ 0,00"></div>
           <div><label for="nVend">Vendedor</label><input id="nVend"></div>
           <div><label for="nFi">F&amp;I</label><input id="nFi"></div>
-          <div><label for="nPlaca">Placa (opcional)</label><input id="nPlaca" maxlength="8" placeholder="ABC1D23" style="text-transform:uppercase"></div>
           <div><label for="nTel">Telefone do cliente (opcional)</label><input id="nTel" class="tel" inputmode="tel" placeholder="(00) 00000-0000"></div>
         </div>
         <div class="aviso-dup oculto" id="avisoDup"></div>
@@ -800,7 +811,41 @@ async function carregarMarcas() {
     $('#fMarca').innerHTML = '<option value="">Selecione</option>' + marcas.map(m => `<option value="${esc(m.code)}">${esc(m.name)}</option>`).join('');
   } catch (e) { $('#fMarca').innerHTML = '<option value="">Indisponível</option>'; fipeMsg(e.message + ' Preencha o modelo e a FIPE manualmente.', true); }
 }
-$('#blocoNovo').addEventListener('toggle', () => { if ($('#blocoNovo').open && $('#fMarca').options.length <= 1) carregarMarcas(); });
+$('#fipeManual').addEventListener('toggle', () => { if ($('#fipeManual').open && $('#fMarca').options.length <= 1) carregarMarcas(); });
+
+// ---------- Busca no estoque (AutoConf) pela placa ----------
+async function buscarEstoque(placa) {
+  if (DEMO) {
+    await new Promise(r => setTimeout(r, 300));
+    if (placa !== 'TWY1C08') throw new Error('Placa não encontrada no estoque do AutoConf (no modo demonstração, use TWY1C08).');
+    return { placa, marca: 'Chevrolet', modelo: 'ONIX HATCH LT 1.0 12V Flex 5p Mec.', ano_fabricacao: '2025', ano_modelo: '2026', fipe: 82889, fipe_codigo: '004517-9', cor: 'Vermelho', km: 46604, valor_venda: 85900, loja: 'SUPERLOJA NICK' };
+  }
+  const { data: { session } } = await sb.auth.getSession();
+  const r = await fetch('/api/estoque', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + (session ? session.access_token : '') }, body: JSON.stringify({ placa }) });
+  const d = await r.json().catch(() => ({ erro: 'Resposta inválida do servidor (a função /api/estoque está publicada?).' }));
+  if (!r.ok) throw new Error(d.erro || 'Erro ' + r.status);
+  return d;
+}
+$('#btnEstoque').onclick = () => travar($('#btnEstoque'), async () => {
+  const placa = $('#nPlaca').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const box = $('#estoqueRes'); box.classList.remove('oculto');
+  if (!/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(placa)) { box.innerHTML = '<span class="msg">Placa inválida. Use o formato ABC1D23 ou ABC1234.</span>'; return; }
+  $('#nPlaca').value = placa;
+  box.innerHTML = '<span style="color:var(--suave)">Buscando no estoque...</span>';
+  try {
+    const c = await buscarEstoque(placa);
+    $('#nModelo').value = `${c.marca} ${c.modelo} ${c.ano_fabricacao || ''}/${c.ano_modelo || ''}`.trim();
+    $('#nFipe').value = c.fipe ? brl(c.fipe) : '';
+    box.innerHTML = `<div class="carro-ok">✓ <b>${esc(c.marca)} ${esc(c.modelo)} ${esc(c.ano_fabricacao || '')}/${esc(c.ano_modelo || '')}</b> — FIPE <b>${brl(c.fipe)}</b>${c.fipe_codigo ? ` (código ${esc(c.fipe_codigo)})` : ''}<br>
+      <span style="font-size:12.5px">${[c.cor, c.km != null ? Number(c.km).toLocaleString('pt-BR') + ' km' : '', c.valor_venda ? 'venda ' + brl(c.valor_venda) : '', c.loja].filter(Boolean).map(esc).join(' · ')}</span></div>`;
+    if (!c.fipe) box.innerHTML += '<div class="msg">Este carro está sem FIPE no AutoConf: use a busca na tabela FIPE abaixo.</div>';
+    $('#nValor').focus();
+  } catch (e) {
+    box.innerHTML = `<span class="msg">${esc(e.message)}</span>`;
+    $('#fipeManual').open = true;
+  }
+});
+$('#nPlaca').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnEstoque').click(); });
 $('#fMarca').onchange = async () => {
   const m = $('#fMarca').value;
   $('#fModelo').value = ''; $('#fModelos').innerHTML = ''; $('#fAno').innerHTML = '<option value="">—</option>'; $('#fAno').disabled = true;
@@ -868,6 +913,7 @@ async function salvarNova() {
   if (error) { msg.textContent = 'Erro ao incluir: ' + error.message; return; }
   try { localStorage.setItem('fiNome', nova.fi_nome); } catch (e) {}
   ['nNome','nCpf','nModelo','nFipe','nValor','nVend','nTel','nPlaca','fModelo'].forEach(id => $('#' + id).value = '');
+  $('#estoqueRes').classList.add('oculto'); $('#fipeManual').open = false;
   $('#fAno').innerHTML = '<option value="">—</option>'; $('#fAno').disabled = true; fipeMsg('');
   $('#avisoDup').classList.add('oculto');
   aba = 'incluida';
