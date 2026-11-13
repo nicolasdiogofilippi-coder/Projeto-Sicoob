@@ -133,6 +133,7 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
 .novidades{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--acc-s);color:var(--acc-t);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-weight:600;font-size:13.5px}
 .barra-lista{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .aviso-dup{color:var(--pe);font-size:13px;margin-top:10px}
+.fipe-busca{background:var(--sup);border-radius:12px;padding:14px 16px;margin-bottom:16px}
 </style>
 </head>
 <body>
@@ -166,6 +167,15 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
     <details class="novo oculto" id="blocoNovo">
       <summary>Nova ficha</summary>
       <div class="corpo">
+        <div class="fipe-busca">
+          <small style="display:block;color:var(--suave);font-size:12px;font-weight:600;margin-bottom:8px">Buscar na tabela FIPE (preenche o modelo e a FIPE sozinho)</small>
+          <div class="grade">
+            <div><label for="fMarca">Marca</label><select id="fMarca"><option value="">Carregando...</option></select></div>
+            <div><label for="fModelo">Modelo (digite para filtrar)</label><input id="fModelo" list="fModelos" placeholder="Escolha a marca primeiro" disabled><datalist id="fModelos"></datalist></div>
+            <div><label for="fAno">Ano do modelo</label><select id="fAno" disabled><option value="">—</option></select></div>
+          </div>
+          <div id="fipeMsg" class="oculto" style="margin-top:8px;font-size:13px"></div>
+        </div>
         <div class="grade">
           <div><label for="nNome">Nome</label><input id="nNome"></div>
           <div><label for="nCpf">CPF</label><input id="nCpf" class="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
@@ -174,6 +184,7 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
           <div><label for="nValor">Valor a financiar (R$)</label><input id="nValor" class="moeda" inputmode="numeric" placeholder="R$ 0,00"></div>
           <div><label for="nVend">Vendedor</label><input id="nVend"></div>
           <div><label for="nFi">F&amp;I</label><input id="nFi"></div>
+          <div><label for="nPlaca">Placa (opcional)</label><input id="nPlaca" maxlength="8" placeholder="ABC1D23" style="text-transform:uppercase"></div>
           <div><label for="nTel">Telefone do cliente (opcional)</label><input id="nTel" class="tel" inputmode="tel" placeholder="(00) 00000-0000"></div>
         </div>
         <div class="aviso-dup oculto" id="avisoDup"></div>
@@ -539,6 +550,7 @@ function cartao(f) {
     <div class="dados">
       <div><small>CPF</small><b>${esc(f.cpf)}</b></div>
       <div><small>Carro</small><b>${esc(f.modelo_ano)}</b></div>
+      ${f.placa ? `<div><small>Placa</small><b>${esc(f.placa)}</b></div>` : ''}
       <div><small>FIPE</small><b>${brl(f.fipe)}</b></div>
       <div><small>Valor a financiar</small><b>${brl(f.valor_financiado)}</b></div>
       <div><small>Vendedor</small><b>${esc(f.vendedor || '—')}</b></div>
@@ -756,6 +768,69 @@ $('#nCpf').addEventListener('blur', async () => {
   if (rep.length) { av.textContent = `Atenção: este CPF já tem ficha em andamento (${rep[0].nome}, incluída em ${dataBR(rep[0].created_at)}).`; av.classList.remove('oculto'); }
 });
 
+// ---------- Busca na tabela FIPE (gratuita) ----------
+// Passa pela função /api/fipe (com cache de 1 dia na Vercel); se ela não existir, consulta direto.
+const fipeCache = {};
+async function fipe(caminho) {
+  if (fipeCache[caminho]) return fipeCache[caminho];
+  if (DEMO) return fipeCache[caminho] = fipeDemo(caminho);
+  let r;
+  try { r = await fetch('/api/fipe?p=' + encodeURIComponent(caminho)); } catch (e) {}
+  if (!r || !r.ok || !(r.headers.get('content-type') || '').includes('json')) r = await fetch('https://fipe.api.br/api/v2' + caminho);
+  if (!r.ok) throw new Error(r.status === 429 ? 'Limite diário da tabela FIPE atingido. Preencha manualmente hoje.' : 'A tabela FIPE não respondeu (' + r.status + ').');
+  return fipeCache[caminho] = await r.json();
+}
+function fipeDemo(c) {
+  if (/brands$/.test(c)) return [{ code: '23', name: 'GM - Chevrolet' }, { code: '59', name: 'VW - VolksWagen' }];
+  if (/models$/.test(c)) return [{ code: '4478', name: 'ONIX HATCH LT 1.0 12V Flex 5p Mec.' }, { code: '4480', name: 'ONIX HATCH LTZ 1.0 12V TB Flex 5p Aut.' }];
+  if (/years$/.test(c)) return [{ code: '2022-1', name: '2022 Gasolina' }, { code: '2021-1', name: '2021 Gasolina' }];
+  return { price: 'R$ 71.234,00', brand: 'GM - Chevrolet', model: 'ONIX HATCH LT 1.0 12V Flex 5p Mec.', modelYear: 2022, fuel: 'Gasolina', codeFipe: '004478-7', referenceMonth: 'novembro de 2026' };
+}
+let fModelos = [];
+function fipeMsg(t, erro) { const m = $('#fipeMsg'); m.textContent = t; m.style.color = erro ? 'var(--er)' : 'var(--suave)'; m.classList.toggle('oculto', !t); }
+async function carregarMarcas() {
+  try {
+    const marcas = await fipe('/cars/brands');
+    $('#fMarca').innerHTML = '<option value="">Selecione</option>' + marcas.map(m => `<option value="${esc(m.code)}">${esc(m.name)}</option>`).join('');
+  } catch (e) { $('#fMarca').innerHTML = '<option value="">Indisponível</option>'; fipeMsg(e.message + ' Preencha o modelo e a FIPE manualmente.', true); }
+}
+$('#blocoNovo').addEventListener('toggle', () => { if ($('#blocoNovo').open && $('#fMarca').options.length <= 1) carregarMarcas(); });
+$('#fMarca').onchange = async () => {
+  const m = $('#fMarca').value;
+  $('#fModelo').value = ''; $('#fModelos').innerHTML = ''; $('#fAno').innerHTML = '<option value="">—</option>'; $('#fAno').disabled = true;
+  $('#fModelo').disabled = !m; fipeMsg('');
+  if (!m) return;
+  $('#fModelo').placeholder = 'Carregando modelos...';
+  try {
+    fModelos = await fipe(`/cars/brands/${m}/models`);
+    $('#fModelos').innerHTML = fModelos.map(x => `<option value="${esc(x.name)}">`).join('');
+    $('#fModelo').placeholder = 'Ex: ONIX LT 1.0'; $('#fModelo').focus();
+  } catch (e) { fipeMsg(e.message, true); }
+};
+$('#fModelo').addEventListener('change', async () => {
+  const mod = fModelos.find(x => x.name === $('#fModelo').value);
+  $('#fAno').innerHTML = '<option value="">—</option>'; $('#fAno').disabled = true;
+  if (!mod) return;
+  try {
+    const anos = await fipe(`/cars/brands/${$('#fMarca').value}/models/${mod.code}/years`);
+    $('#fAno').innerHTML = '<option value="">Selecione</option>' + anos.map(a => `<option value="${esc(a.code)}">${esc(String(a.name).replace(/^32000/, '0 km'))}</option>`).join('');
+    $('#fAno').disabled = false; $('#fAno').focus();
+  } catch (e) { fipeMsg(e.message, true); }
+});
+$('#fAno').onchange = async () => {
+  const mod = fModelos.find(x => x.name === $('#fModelo').value), ano = $('#fAno').value;
+  if (!mod || !ano) return;
+  try {
+    const v = await fipe(`/cars/brands/${$('#fMarca').value}/models/${mod.code}/years/${ano}`);
+    const marca = String(v.brand || '').replace(/^.*? - /, '');
+    const anoTxt = Number(v.modelYear) === 32000 ? '0 km' : v.modelYear;
+    $('#nModelo').value = `${marca} ${v.model} ${anoTxt}`.trim();
+    $('#nFipe').value = brl(parseMoeda(v.price));
+    fipeMsg(`FIPE ${v.referenceMonth || ''} · código ${v.codeFipe || '—'} · ${v.fuel || ''}`);
+    $('#nValor').focus();
+  } catch (e) { fipeMsg(e.message, true); }
+};
+
 $('#btnSalvarNova').onclick = () => travar($('#btnSalvarNova'), salvarNova);
 async function salvarNova() {
   const msg = $('#msgNova'); msg.textContent = '';
@@ -770,16 +845,24 @@ async function salvarNova() {
   };
   const tel = $('#nTel').value.trim();
   if (tel) nova.telefone = tel;
+  const placa = $('#nPlaca').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (placa) nova.placa = placa;
   if (!nova.nome || !nova.cpf || !nova.modelo_ano || !nova.fipe || !nova.valor_financiado || !nova.vendedor || !nova.fi_nome) { msg.textContent = 'Preencha todos os campos obrigatórios.'; return; }
   if (!cpfValido(nova.cpf)) { msg.textContent = 'CPF inválido. Confira os números.'; return; }
   nova.cpf = cpfFmt(nova.cpf);
   if (nova.valor_financiado > nova.fipe * 1.2 && !confirm('O valor a financiar está bem acima da FIPE. Incluir mesmo assim?')) return;
   const rep = await fichaRepetida(nova.cpf);
   if (rep.length && !confirm(`Este CPF já tem ficha em andamento (${rep[0].nome}). Incluir outra mesmo assim?`)) return;
-  const { error } = await sb.from('fichas').insert(nova);
+  let { error } = await sb.from('fichas').insert(nova);
+  if (error && nova.placa && /placa/i.test(error.message)) {
+    // Banco ainda sem a coluna placa (Parte 7 do SQL): salva sem ela para não travar o trabalho
+    delete nova.placa; nova.modelo_ano = `${nova.modelo_ano} — placa ${placa}`;
+    ({ error } = await sb.from('fichas').insert(nova));
+  }
   if (error) { msg.textContent = 'Erro ao incluir: ' + error.message; return; }
   try { localStorage.setItem('fiNome', nova.fi_nome); } catch (e) {}
-  ['nNome','nCpf','nModelo','nFipe','nValor','nVend','nTel'].forEach(id => $('#' + id).value = '');
+  ['nNome','nCpf','nModelo','nFipe','nValor','nVend','nTel','nPlaca','fModelo'].forEach(id => $('#' + id).value = '');
+  $('#fAno').innerHTML = '<option value="">—</option>'; $('#fAno').disabled = true; fipeMsg('');
   $('#avisoDup').classList.add('oculto');
   aba = 'incluida';
   aviso('Ficha incluída com sucesso!');
@@ -793,8 +876,8 @@ $('#btnExportar').onclick = () => {
   if (!lista.length) { alert('Não há fichas nesta aba para exportar.'); return; }
   const num = v => v == null ? '' : String(v).replace('.', ',');
   const situacao = f => f.status === 'fechada' ? 'PAGA' : f.status === 'aprovada' ? 'APROVADA PELO GERENTE' : f.status === 'em_contato' ? 'EM CONTATO' : !f.resultado ? 'AGUARDANDO' : f.resultado === 'recusado' ? 'RECUSADO' : 'PRE-APROVADO';
-  const cab = ['DATA','CLIENTE','CPF','VENDEDOR','F&I','TELEFONE','CARRO','FIPE','VALOR A FINANCIAR','SITUACAO SICOOB','VALOR PRE-APROVADO','PARCELAS','VALOR PARCELA','PENDENCIAS','OBSERVACOES'];
-  const linhas = lista.map(f => [new Date(f.created_at).toLocaleDateString('pt-BR'), f.nome, f.cpf, f.vendedor, f.fi_nome, f.telefone, f.modelo_ano, num(f.fipe), num(f.valor_financiado), situacao(f), num(f.valor_pre_aprovado), f.parcelas, num(f.valor_parcela), f.pendencias, f.observacoes]);
+  const cab = ['DATA','CLIENTE','CPF','VENDEDOR','F&I','TELEFONE','PLACA','CARRO','FIPE','VALOR A FINANCIAR','SITUACAO SICOOB','VALOR PRE-APROVADO','PARCELAS','VALOR PARCELA','PENDENCIAS','OBSERVACOES'];
+  const linhas = lista.map(f => [new Date(f.created_at).toLocaleDateString('pt-BR'), f.nome, f.cpf, f.vendedor, f.fi_nome, f.telefone, f.placa, f.modelo_ano, num(f.fipe), num(f.valor_financiado), situacao(f), num(f.valor_pre_aprovado), f.parcelas, num(f.valor_parcela), f.pendencias, f.observacoes]);
   const cel = v => { const t = String(v ?? ''); return /[;"\n\r]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t; };
   const csv = '\ufeff' + [cab, ...linhas].map(l => l.map(cel).join(';')).join('\r\n');
   const a = document.createElement('a');
