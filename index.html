@@ -78,6 +78,7 @@ main{max-width:1080px;margin:0 auto;padding:24px}
 .chip{display:inline-block;padding:4px 11px;border-radius:99px;font-size:12px;font-weight:600}
 .chip.pre_aprovado{background:var(--ok-bg);color:var(--ok)}
 .chip.recusado{background:var(--er-bg);color:var(--er)}
+.bloco.falta{background:var(--pe-bg)}
 .chip.pend{background:var(--pe-bg);color:var(--pe)}
 .dados{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px 20px;margin-top:16px}
 .dados small{display:block;color:var(--suave);font-size:11.5px;font-weight:500;margin-bottom:2px}
@@ -196,7 +197,8 @@ function criarDemo() {
     {id:'1',created_at:t(1),updated_at:t(1),nome:'Maria Souza',cpf:'123.456.789-09',modelo_ano:'Onix 1.0 2021',fipe:62500,valor_financiado:40000,vendedor:'Rafael',fi_nome:'Luiz',status:'incluida',resultado:null,valor_pre_aprovado:null,parcelas:null,aprovacao_final:null},
     {id:'2',created_at:t(5),updated_at:t(5),nome:'João Pereira',cpf:'987.654.321-00',modelo_ano:'HB20 1.6 2019',fipe:58000,valor_financiado:35000,vendedor:'Bianca',fi_nome:'Luiz',status:'analisada',resultado:'pre_aprovado',valor_pre_aprovado:32000,parcelas:48,aprovacao_final:null},
     {id:'3',created_at:t(28),updated_at:t(28),nome:'Ana Lima',cpf:'111.222.333-44',modelo_ano:'Creta 2.0 2020',fipe:91000,valor_financiado:60000,vendedor:'Rafael',fi_nome:'Luiz',status:'fechada',resultado:'pre_aprovado',valor_pre_aprovado:58000,parcelas:60,aprovacao_final:'sim'},
-    {id:'4',created_at:t(30),updated_at:t(30),nome:'Carlos Dias',cpf:'555.666.777-88',modelo_ano:'Gol 1.6 2015',fipe:34000,valor_financiado:25000,vendedor:'Bianca',fi_nome:'Luiz',status:'analisada',resultado:'recusado',valor_pre_aprovado:null,parcelas:null,aprovacao_final:null}
+    {id:'4',created_at:t(30),updated_at:t(30),nome:'Carlos Dias',cpf:'555.666.777-88',modelo_ano:'Gol 1.6 2015',fipe:34000,valor_financiado:25000,vendedor:'Bianca',fi_nome:'Luiz',status:'analisada',resultado:'recusado',valor_pre_aprovado:null,parcelas:null,aprovacao_final:null},
+    {id:'5',created_at:t(8),updated_at:t(8),nome:'Paula Rocha',cpf:'222.333.444-55',modelo_ano:'Corolla 2.0 2022',fipe:120000,valor_financiado:70000,vendedor:'Rafael',fi_nome:'Luiz',status:'em_contato',resultado:'pre_aprovado',valor_pre_aprovado:68000,parcelas:48,aprovacao_final:null,telefone:'(11) 98765-4321',pendencias:'Falta comprovante de renda'}
   ];
   let usuario = null;
   const ok = Promise.resolve({ error: null });
@@ -216,10 +218,10 @@ function criarDemo() {
         lte: (c, v) => { filtros.push(r => r[c] <= v); return b; },
         maybeSingle: () => Promise.resolve({ data: usuario ? { papel: usuario } : null, error: null }),
         then: (res) => res({ data: linhas.filter(r => filtros.every(f => f(r))).sort((a, c) => c.created_at.localeCompare(a.created_at)), error: null }),
-        insert: (n) => { linhas.push({ id: String(Date.now()), created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'incluida', resultado: null, valor_pre_aprovado: null, parcelas: null, aprovacao_final: null, ...n }); return ok; },
+        insert: (n) => { linhas.push({ id: String(Date.now()), created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'incluida', telefone: null, pendencias: null, resultado: null, valor_pre_aprovado: null, parcelas: null, aprovacao_final: null, ...n }); return ok; },
         update: (v) => ({ eq: (c, id) => {
-          const r = linhas.find(x => x.id === id); Object.assign(r, v); r.updated_at = new Date().toISOString();
-          if (usuario === 'operador' && r.resultado) r.status = r.aprovacao_final === 'sim' ? 'fechada' : 'analisada';
+          const r = linhas.find(x => x.id === id); const antes = r.status; Object.assign(r, v); r.updated_at = new Date().toISOString();
+          if (usuario === 'operador' && r.resultado) r.status = r.aprovacao_final === 'sim' ? 'fechada' : (antes === 'em_contato' ? 'em_contato' : 'analisada');
           return ok; } }),
         delete: () => ({ eq: (c, id) => { linhas.splice(linhas.findIndex(x => x.id === id), 1); return ok; } })
       };
@@ -228,7 +230,7 @@ function criarDemo() {
   };
 }
 
-const ABAS = [['incluida','Incluídas'],['analisada','Analisadas'],['fechada','Fechadas']];
+const ABAS = [['incluida','Incluídas'],['analisada','Analisadas'],['em_contato','Em contato'],['fechada','Concluídas']];
 const RES = { pre_aprovado: 'Pré-aprovado', recusado: 'Recusado' };
 let papel = null, aba = 'incluida', fichas = [], timer, editId = null;
 const META = 9, NIVEL1 = 4, TAXA1 = 0.03, TAXA2 = 0.04;
@@ -242,6 +244,13 @@ document.addEventListener('input', e => {
   if (!e.target.classList.contains('moeda')) return;
   const d = e.target.value.replace(/\D/g, '');
   e.target.value = d ? brl(Number(d) / 100) : '';
+});
+document.addEventListener('input', e => {
+  if (!e.target.classList.contains('tel')) return;
+  const d = e.target.value.replace(/\D/g, '').slice(0, 11);
+  e.target.value = d.length > 10 ? d.replace(/(\d{2})(\d{5})(\d{0,4})/, '($1) $2-$3')
+    : d.length > 6 ? d.replace(/(\d{2})(\d{4})(\d{0,4})/, '($1) $2-$3')
+    : d.length > 2 ? d.replace(/(\d{2})(\d{0,5})/, '($1) $2') : d;
 });
 let toastT;
 function aviso(txt) {
@@ -332,7 +341,8 @@ async function salvarEdicao(id) {
     fipe: parseMoeda(el.querySelector('.e-fipe').value),
     valor_financiado: parseMoeda(el.querySelector('.e-valor').value),
     vendedor: el.querySelector('.e-vend').value.trim(),
-    fi_nome: el.querySelector('.e-fi').value.trim()
+    fi_nome: el.querySelector('.e-fi').value.trim(),
+    telefone: el.querySelector('.e-tel').value.trim() || null
   };
   if (!v.nome || !v.cpf || !v.modelo_ano || !v.fipe || !v.valor_financiado || !v.vendedor || !v.fi_nome) { msg.textContent = 'Preencha todos os campos.'; return; }
   const { error } = await sb.from('fichas').update(v).eq('id', id);
@@ -352,6 +362,7 @@ function cartaoEdicao(f) {
       <div><label>Valor a financiar (R$)</label><input class="e-valor moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.valor_financiado)}"></div>
       <div><label>Vendedor</label><input class="e-vend" value="${esc(f.vendedor)}"></div>
       <div><label>F&amp;I</label><input class="e-fi" value="${esc(f.fi_nome)}"></div>
+      <div><label>Telefone do cliente</label><input class="e-tel tel" inputmode="tel" placeholder="(00) 00000-0000" value="${esc(f.telefone ?? '')}"></div>
     </div>
     <div class="acoes" style="align-items:center"><button class="btn" onclick="salvarEdicao('${f.id}')">Salvar alterações</button><button class="btn sec" onclick="cancelarEdicao()">Cancelar</button><span class="msg" style="margin:0"></span></div>
   </article>`;
@@ -379,6 +390,7 @@ function cartao(f) {
       <div><small>Valor a financiar</small><b>${brl(f.valor_financiado)}</b></div>
       <div><small>Vendedor</small><b>${esc(f.vendedor || '—')}</b></div>
       <div><small>F&amp;I</small><b>${esc(f.fi_nome || '—')}</b></div>
+      ${f.telefone || f.status === 'em_contato' || f.status === 'fechada' ? `<div><small>Telefone</small><b>${esc(f.telefone || '—')}</b></div>` : ''}
     </div>`;
 
   let analise = '';
@@ -389,6 +401,14 @@ function cartao(f) {
       <div><small>Valor da parcela</small><b>${brl(f.valor_parcela)}</b></div>
       <div><small>Aprovação final</small><b>${f.aprovacao_final === 'sim' ? 'Confirmada' : f.aprovacao_final === 'nao' ? 'Não confirmada' : 'Pendente'}</b></div>
     </div>${f.observacoes ? `<div style="margin-top:14px"><small style="display:block;color:var(--suave);font-size:11.5px;font-weight:500;margin-bottom:2px">Observações do Sicoob</small><div class="obs">${esc(f.observacoes)}</div></div>` : ''}</div>`;
+  }
+
+  if (papel === 'fi' && f.pendencias) {
+    analise += `<div class="bloco falta"><small style="display:block;color:var(--pe);font-size:11.5px;font-weight:600;margin-bottom:2px">Informações que faltam (Sicoob)</small><div class="obs">${esc(f.pendencias)}</div></div>`;
+  }
+  if (papel === 'fi' && f.status === 'em_contato') {
+    analise += `<div class="bloco" id="t${f.id}"><div class="grade"><div><label>Telefone do cliente</label><input class="tel-in tel" inputmode="tel" placeholder="(00) 00000-0000" value="${esc(f.telefone ?? '')}"></div></div>
+      <div class="acoes"><button class="btn peq" onclick="salvarTelefone('${f.id}')">Salvar telefone</button></div></div>`;
   }
 
   let acoes = '';
@@ -407,13 +427,16 @@ function cartao(f) {
             <option value="sim" ${f.aprovacao_final === 'sim' ? 'selected' : ''}>Confirmada</option>
             <option value="nao" ${f.aprovacao_final === 'nao' ? 'selected' : ''}>Não confirmada</option></select></div>
       </div>
+      <div class="campo" style="margin:14px 0 0"><label>Informações que faltam do cliente (para fechar)</label><textarea class="pend-in" placeholder="Ex: falta comprovante de renda, comprovante de residência...">${esc(f.pendencias ?? '')}</textarea></div>
       <div class="campo" style="margin:14px 0 0"><label>Observações</label><textarea class="obs-in" placeholder="Observações sobre a ficha (aprovada ou recusada)">${esc(f.observacoes ?? '')}</textarea></div>
       <div class="acoes"><button class="btn" onclick="salvarAnalise('${f.id}')">Salvar análise</button></div>
     </div>`;
   } else {
     acoes = `<div class="acoes">
       ${f.status !== 'fechada' ? `<button class="btn sec peq" onclick="editar('${f.id}')">Editar</button>` : ''}
-      ${f.status !== 'fechada' ? `<button class="btn sec peq" onclick="mudarStatus('${f.id}','fechada')">Marcar como fechada</button>` : `<button class="btn sec peq" onclick="mudarStatus('${f.id}','analisada')">Reabrir</button>`}
+      ${f.status === 'analisada' && f.resultado === 'pre_aprovado' ? `<button class="btn peq" onclick="mudarStatus('${f.id}','em_contato')">Mover para Em contato</button>` : ''}
+      ${f.status === 'em_contato' ? `<button class="btn sec peq" onclick="mudarStatus('${f.id}','analisada')">Voltar para Analisadas</button>` : ''}
+      ${f.status !== 'fechada' ? `<button class="btn sec peq" onclick="mudarStatus('${f.id}','fechada')">Marcar como concluída</button>` : `<button class="btn sec peq" onclick="mudarStatus('${f.id}','em_contato')">Reabrir</button>`}
       <button class="btn perigo peq" onclick="excluir('${f.id}')">Excluir</button>
     </div>`;
   }
@@ -428,13 +451,14 @@ async function salvarAnalise(id) {
   const el = document.getElementById('f' + id);
   const resultado = el.querySelector('.res').value;
   if (!resultado) { alert('Escolha pré-aprovado ou recusado.'); return; }
-  const v = el.querySelector('.vpre').value, p = el.querySelector('.parc').value, vp = el.querySelector('.vparc').value, a = el.querySelector('.fin').value, ob = el.querySelector('.obs-in').value.trim();
+  const v = el.querySelector('.vpre').value, p = el.querySelector('.parc').value, vp = el.querySelector('.vparc').value, a = el.querySelector('.fin').value, ob = el.querySelector('.obs-in').value.trim(), pd = el.querySelector('.pend-in').value.trim();
   const { error } = await sb.from('fichas').update({
     resultado,
     valor_pre_aprovado: v ? parseMoeda(v) : null,
     parcelas: p ? parseInt(p, 10) : null,
     valor_parcela: vp ? parseMoeda(vp) : null,
     observacoes: ob || null,
+    pendencias: pd || null,
     aprovacao_final: a || null
   }).eq('id', id);
   if (error) { alert('Erro ao salvar: ' + error.message); return; }
@@ -442,9 +466,19 @@ async function salvarAnalise(id) {
   carregar();
 }
 
+async function salvarTelefone(id) {
+  const tel = document.querySelector('#t' + id + ' .tel-in').value.trim();
+  const { error } = await sb.from('fichas').update({ telefone: tel || null }).eq('id', id);
+  if (error) { alert('Erro ao salvar: ' + error.message); return; }
+  aviso('Telefone salvo com sucesso!');
+  carregar();
+}
+
 async function mudarStatus(id, status) {
   const { error } = await sb.from('fichas').update({ status }).eq('id', id);
   if (error) { alert('Erro: ' + error.message); return; }
+  aviso({ em_contato: 'Ficha movida para Em contato.', analisada: 'Ficha movida para Analisadas.', fechada: 'Ficha concluída!' }[status] || 'Ficha atualizada.');
+  aba = status;
   carregar();
 }
 
