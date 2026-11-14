@@ -133,6 +133,9 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
 .novidades{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--acc-s);color:var(--acc-t);padding:10px 14px;border-radius:10px;margin-bottom:14px;font-weight:600;font-size:13.5px}
 .barra-lista{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
 .aviso-dup{color:var(--pe);font-size:13px;margin-top:10px}
+.fipe-ref{display:block;font-size:11.5px;color:var(--suave);margin-top:5px;line-height:1.35}
+.fipe-ref.velha{color:var(--pe);font-weight:600}
+.lista-carros{display:flex;align-items:center;gap:10px;flex-wrap:wrap;font-size:12.5px;color:var(--suave);margin:-4px 0 14px}
 .fipe-busca{background:var(--sup);border-radius:12px;padding:12px 16px;margin-bottom:16px}
 .placa-linha{display:flex;gap:10px;align-items:flex-end;margin-bottom:12px;flex-wrap:wrap}
 .placa-linha>div{width:180px}
@@ -177,6 +180,10 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
           <button class="btn" id="btnEstoque" type="button">Buscar no estoque</button>
         </div>
         <div id="estoqueRes" class="oculto"></div>
+        <div class="lista-carros">
+          <span id="listaInfo">Lista de carros do AutoConf: carregando...</span>
+          <label class="btn sec peq" style="margin:0;cursor:pointer;color:var(--texto);font-size:13px">Atualizar lista de carros (planilha do AutoConf)<input type="file" id="arqEstoque" accept=".xlsx,.xls,.csv" class="oculto"></label>
+        </div>
         <details class="fipe-busca" id="fipeManual">
           <summary style="cursor:pointer;color:var(--suave);font-size:12.5px;font-weight:600">Carro fora do estoque? Buscar na tabela FIPE</summary>
           <div style="margin-top:10px">
@@ -192,7 +199,7 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
           <div><label for="nNome">Nome</label><input id="nNome"></div>
           <div><label for="nCpf">CPF</label><input id="nCpf" class="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
           <div><label for="nModelo">Modelo e ano do carro</label><input id="nModelo" placeholder="Onix 1.0 2021"></div>
-          <div><label for="nFipe">FIPE (R$)</label><input id="nFipe" class="moeda" inputmode="numeric" placeholder="R$ 0,00"></div>
+          <div><label for="nFipe">FIPE (R$)</label><input id="nFipe" class="moeda" inputmode="numeric" placeholder="R$ 0,00"><small id="fipeRef" class="fipe-ref"></small></div>
           <div><label for="nValor">Valor a financiar (R$)</label><input id="nValor" class="moeda" inputmode="numeric" placeholder="R$ 0,00"></div>
           <div><label for="nVend">Vendedor</label><input id="nVend"></div>
           <div><label for="nFi">F&amp;I</label><input id="nFi"></div>
@@ -246,6 +253,7 @@ document.querySelectorAll(".tema").forEach(function(b){b.addEventListener("click
 })});
 </script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script>
 const SUPABASE_URL = 'https://lhvgbmixwrhybdovgtwo.supabase.co';
 const SUPABASE_KEY = 'sb_publishable_x0WFxAWbyJ_Zt638jZTwzA_lf1Ee1kF';
@@ -283,6 +291,7 @@ function criarDemo() {
         lte: (c, v) => { filtros.push(r => r[c] <= v); return b; },
         maybeSingle: () => Promise.resolve({ data: usuario ? { papel: usuario } : null, error: null }),
         then: (res) => res({ data: linhas.filter(r => filtros.every(f => f(r))).sort((a, c) => c.created_at.localeCompare(a.created_at)), error: null }),
+        upsert: () => ok,
         insert: (n) => { linhas.push({ id: String(Date.now()), created_at: new Date().toISOString(), updated_at: new Date().toISOString(), status: 'incluida', telefone: null, pendencias: null, resultado: null, valor_pre_aprovado: null, parcelas: null, aprovacao_final: null, ...n }); return ok; },
         update: (v) => ({ eq: (c, id) => {
           const r = linhas.find(x => x.id === id); const antes = r.status; Object.assign(r, v); r.updated_at = new Date().toISOString();
@@ -360,6 +369,7 @@ async function iniciar() {
   if (!$('#mesMeta').value) { const d = new Date(); $('#mesMeta').value = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
   try { $('#nFi').value = localStorage.getItem('fiNome') || ''; } catch (e) {}
   $('#btnExportar').classList.toggle('oculto', papel !== 'fi');
+  if (papel === 'fi') infoLista();
   aba = 'incluida';
   await carregar();
   iniciarVigia();
@@ -826,25 +836,105 @@ async function buscarEstoque(placa) {
   if (!r.ok) throw new Error(d.erro || 'Erro ' + r.status);
   return d;
 }
+const mesAno = d => { const x = new Date(d); return isNaN(x) ? '' : x.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }); };
+const dataCurta = d => { const x = new Date(d); return isNaN(x) ? '' : x.toLocaleDateString('pt-BR'); };
+function refFipe(txt, velha) { const r = $('#fipeRef'); r.textContent = txt || ''; r.classList.toggle('velha', !!velha); }
+// Converte '12/11/2026' em data ISO
+const dataBRparaISO = t => { const m = String(t || '').match(/^(\d{2})\/(\d{2})\/(\d{4})/); return m ? `${m[3]}-${m[2]}-${m[1]}` : null; };
+
+// Lista de carros importada da planilha do AutoConf (guardada no banco do site)
+async function buscarNaLista(placa) {
+  if (DEMO) return null;
+  const { data, error } = await sb.from('veiculos').select('*').eq('placa', placa).limit(1);
+  if (error) throw new Error(/veiculos/.test(error.message) ? 'A lista de carros ainda não foi criada no banco (rode a Parte 8 do SQL).' : error.message);
+  return data && data[0] ? data[0] : null;
+}
+async function infoLista() {
+  if (DEMO || papel !== 'fi') { $('#listaInfo').textContent = 'Lista de carros do AutoConf: importe a planilha para buscar carros fora do estoque publicado.'; return; }
+  const { data, count, error } = await sb.from('veiculos').select('importado_em', { count: 'exact' }).order('importado_em', { ascending: false }).limit(1);
+  if (error) { $('#listaInfo').textContent = 'Lista de carros: ainda não criada (rode a Parte 8 do SQL).'; return; }
+  if (!count) { $('#listaInfo').textContent = 'Lista de carros do AutoConf: nenhuma planilha importada ainda.'; return; }
+  const em = data[0].importado_em, mesAtual = new Date().toISOString().slice(0, 7) === String(em).slice(0, 7);
+  $('#listaInfo').innerHTML = `Lista de carros do AutoConf: <b style="color:var(--texto)">${count} carros</b>, importada em ${esc(dataCurta(em))}${mesAtual ? '' : ' <span style="color:var(--pe);font-weight:600">· importe de novo para atualizar a FIPE do mês</span>'}`;
+}
+
 $('#btnEstoque').onclick = () => travar($('#btnEstoque'), async () => {
   const placa = $('#nPlaca').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  const box = $('#estoqueRes'); box.classList.remove('oculto');
+  const box = $('#estoqueRes'); box.classList.remove('oculto'); refFipe('');
   if (!/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(placa)) { box.innerHTML = '<span class="msg">Placa inválida. Use o formato ABC1D23 ou ABC1234.</span>'; return; }
   $('#nPlaca').value = placa;
   box.innerHTML = '<span style="color:var(--suave)">Buscando no estoque...</span>';
+  let erroApi = '';
+  // 1) Estoque publicado, ao vivo, pela API do AutoConf
   try {
     const c = await buscarEstoque(placa);
     $('#nModelo').value = `${c.marca} ${c.modelo} ${c.ano_fabricacao || ''}/${c.ano_modelo || ''}`.trim();
     $('#nFipe').value = c.fipe ? brl(c.fipe) : '';
+    refFipe(`Fonte: estoque publicado do AutoConf (ao vivo)${c.atualizado_em ? ' · anúncio atualizado em ' + dataCurta(String(c.atualizado_em).replace(' ', 'T')) : ''}`);
     box.innerHTML = `<div class="carro-ok">✓ <b>${esc(c.marca)} ${esc(c.modelo)} ${esc(c.ano_fabricacao || '')}/${esc(c.ano_modelo || '')}</b> — FIPE <b>${brl(c.fipe)}</b>${c.fipe_codigo ? ` (código ${esc(c.fipe_codigo)})` : ''}<br>
       <span style="font-size:12.5px">${[c.cor, c.km != null ? Number(c.km).toLocaleString('pt-BR') + ' km' : '', c.valor_venda ? 'venda ' + brl(c.valor_venda) : '', c.loja].filter(Boolean).map(esc).join(' · ')}</span></div>`;
-    if (!c.fipe) box.innerHTML += '<div class="msg">Este carro está sem FIPE no AutoConf: use a busca na tabela FIPE abaixo.</div>';
+    $('#nValor').focus();
+    return;
+  } catch (e) { erroApi = e.message; }
+  // 2) Lista importada da planilha do AutoConf
+  try {
+    const v = await buscarNaLista(placa);
+    if (!v) throw new Error('Placa não encontrada no estoque nem na lista importada do AutoConf.');
+    $('#nModelo').value = `${v.marca || ''} ${v.versao || v.modelo || ''} ${v.ano_fabricacao || ''}/${v.ano_modelo || ''}`.replace(/\s+/g, ' ').trim();
+    const fipe = v.fipe_atual || v.fipe_entrada;
+    $('#nFipe').value = fipe ? brl(fipe) : '';
+    const mesAtual = new Date().toISOString().slice(0, 7) === String(v.importado_em).slice(0, 7);
+    refFipe(`Referência: FIPE ${v.fipe_atual ? 'atual' : 'de entrada'} de ${mesAno(v.fipe_atual ? v.importado_em : v.data_cadastro)} (planilha do AutoConf importada em ${dataCurta(v.importado_em)})${v.fipe_entrada && v.fipe_atual && v.fipe_entrada !== v.fipe_atual ? ` · FIPE de entrada ${brl(v.fipe_entrada)} em ${mesAno(v.data_cadastro)}` : ''}${mesAtual ? '' : ' · ⚠ planilha de outro mês, confira a FIPE'}`, !mesAtual);
+    box.innerHTML = `<div class="carro-ok">✓ <b>${esc(v.marca || '')} ${esc(v.versao || v.modelo || '')} ${esc(v.ano_fabricacao || '')}/${esc(v.ano_modelo || '')}</b> — FIPE <b>${brl(fipe)}</b><br>
+      <span style="font-size:12.5px">${[v.status, v.revenda, v.data_cadastro ? 'cadastrado em ' + dataCurta(v.data_cadastro + 'T12:00') : ''].filter(Boolean).map(esc).join(' · ')} · da lista importada</span></div>`;
     $('#nValor').focus();
   } catch (e) {
-    box.innerHTML = `<span class="msg">${esc(e.message)}</span>`;
+    box.innerHTML = `<span class="msg">${esc(e.message)}${/configurada|recusou|respondeu/.test(erroApi) ? '<br>Estoque ao vivo: ' + esc(erroApi) : ''}</span>`;
     $('#fipeManual').open = true;
   }
 });
+
+// Importa a planilha exportada do AutoConf (Veículos → download). Guarda só dados do carro:
+// nome e CPF/CNPJ do dono, chassi e Renavam NÃO são enviados.
+$('#arqEstoque').addEventListener('change', async e => {
+  const arq = e.target.files[0]; e.target.value = '';
+  if (!arq) return;
+  if (typeof XLSX === 'undefined') { alert('Não foi possível carregar o leitor de planilhas. Recarregue a página e tente de novo.'); return; }
+  $('#listaInfo').textContent = 'Lendo a planilha...';
+  try {
+    const wb = XLSX.read(await arq.arrayBuffer(), { type: 'array' });
+    const linhas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: null, raw: true });
+    const col = (l, ...nomes) => { for (const n of nomes) { const k = Object.keys(l).find(k => k.trim().toLowerCase() === n.toLowerCase()); if (k && l[k] !== null && l[k] !== '') return l[k]; } return null; };
+    const num = v => v == null ? null : typeof v === 'number' ? v : (Number(String(v).replace(/[^\d,.-]/g, '').replace(/\./g, '').replace(',', '.')) || null);
+    const agora = new Date().toISOString();
+    const mapa = new Map();
+    for (const l of linhas) {
+      const placa = String(col(l, 'Placa') || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+      if (!/^[A-Z]{3}[0-9][A-Z0-9][0-9]{2}$/.test(placa)) continue;
+      const dc = col(l, 'Data Cadastro');
+      mapa.set(placa, {
+        placa,
+        marca: col(l, 'Marca'), modelo: col(l, 'Modelo'), versao: col(l, 'Versão', 'Versao'),
+        ano_modelo: num(col(l, 'Ano Modelo')), ano_fabricacao: num(col(l, 'Ano Fabricação', 'Ano Fabricacao')),
+        fipe_atual: num(col(l, 'Valor Fipe Atual')) || null, fipe_entrada: num(col(l, 'Valor Fipe Entrada')) || null,
+        data_cadastro: typeof dc === 'number' ? new Date(Math.round((dc - 25569) * 864e5)).toISOString().slice(0, 10) : dataBRparaISO(dc),
+        revenda: col(l, 'Revenda Atual'), status: col(l, 'Status Avaliação', 'Status Veículo'),
+        importado_em: agora
+      });
+    }
+    const regs = [...mapa.values()];
+    if (!regs.length) { alert('Não encontrei a coluna "Placa" nessa planilha. Use a exportação da tela Veículos do AutoConf.'); infoLista(); return; }
+    if (!confirm(`Importar ${regs.length} carros do AutoConf? Os carros que já estão na lista terão modelo e FIPE atualizados.`)) { infoLista(); return; }
+    for (let i = 0; i < regs.length; i += 500) {
+      $('#listaInfo').textContent = `Importando... ${Math.min(i + 500, regs.length)} de ${regs.length}`;
+      const { error } = await sb.from('veiculos').upsert(regs.slice(i, i + 500), { onConflict: 'placa' });
+      if (error) throw new Error(/veiculos/.test(error.message) ? 'A lista de carros ainda não foi criada no banco: rode a Parte 8 do SQL no Supabase.' : error.message);
+    }
+    aviso(`${regs.length} carros importados!`);
+  } catch (err) { alert('Erro ao importar: ' + err.message); }
+  infoLista();
+});
+
 $('#nPlaca').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btnEstoque').click(); });
 $('#fMarca').onchange = async () => {
   const m = $('#fMarca').value;
@@ -878,6 +968,7 @@ $('#fAno').onchange = async () => {
     $('#nModelo').value = `${marca} ${v.model} ${anoTxt}`.trim();
     $('#nFipe').value = brl(parseMoeda(v.price));
     fipeMsg(`FIPE ${v.referenceMonth || ''} · código ${v.codeFipe || '—'} · ${v.fuel || ''}`);
+    refFipe(`Referência: tabela FIPE de ${v.referenceMonth || 'mês atual'} (consulta oficial)`);
     $('#nValor').focus();
   } catch (e) { fipeMsg(e.message, true); }
 };
@@ -913,7 +1004,7 @@ async function salvarNova() {
   if (error) { msg.textContent = 'Erro ao incluir: ' + error.message; return; }
   try { localStorage.setItem('fiNome', nova.fi_nome); } catch (e) {}
   ['nNome','nCpf','nModelo','nFipe','nValor','nVend','nTel','nPlaca','fModelo'].forEach(id => $('#' + id).value = '');
-  $('#estoqueRes').classList.add('oculto'); $('#fipeManual').open = false;
+  $('#estoqueRes').classList.add('oculto'); $('#fipeManual').open = false; refFipe('');
   $('#fAno').innerHTML = '<option value="">—</option>'; $('#fAno').disabled = true; fipeMsg('');
   $('#avisoDup').classList.add('oculto');
   aba = 'incluida';
