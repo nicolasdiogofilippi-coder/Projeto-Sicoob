@@ -83,7 +83,7 @@ export default async function handler(req, res) {
     cor: v.cor_nome || null,
     km: v.km ?? null,
     valor_venda: v.valorvenda != null ? Number(v.valorvenda) : null,
-    loja: v.revenda_nome || null
+    loja: v.revenda_nome || null,
+    atualizado_em: v.atualizacao || null
   });
 }
-
