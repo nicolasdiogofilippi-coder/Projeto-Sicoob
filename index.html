@@ -198,12 +198,12 @@ textarea:focus{outline:0;border-color:var(--acc);box-shadow:0 0 0 3px var(--ring
         <div class="grade">
           <div><label for="nNome">Nome</label><input id="nNome"></div>
           <div><label for="nCpf">CPF</label><input id="nCpf" class="cpf" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></div>
+          <div><label for="nTel">Telefone do cliente</label><input id="nTel" class="tel" inputmode="tel" placeholder="(00) 00000-0000"></div>
           <div><label for="nModelo">Modelo e ano do carro</label><input id="nModelo" placeholder="Onix 1.0 2021"></div>
           <div><label for="nFipe">FIPE (R$)</label><input id="nFipe" class="moeda" inputmode="numeric" placeholder="R$ 0,00"><small id="fipeRef" class="fipe-ref"></small></div>
           <div><label for="nValor">Valor a financiar (R$)</label><input id="nValor" class="moeda" inputmode="numeric" placeholder="R$ 0,00"></div>
           <div><label for="nVend">Vendedor</label><input id="nVend"></div>
           <div><label for="nFi">F&amp;I</label><input id="nFi"></div>
-          <div><label for="nTel">Telefone do cliente (opcional)</label><input id="nTel" class="tel" inputmode="tel" placeholder="(00) 00000-0000"></div>
         </div>
         <div class="aviso-dup oculto" id="avisoDup"></div>
         <div class="acoes" style="align-items:center"><button class="btn" id="btnSalvarNova">Incluir ficha</button><span class="msg" id="msgNova" style="margin:0"></span></div>
@@ -526,12 +526,12 @@ function cartaoEdicao(f) {
     <div class="grade">
       <div><label>Nome</label><input class="e-nome" value="${esc(f.nome)}"></div>
       <div><label>CPF</label><input class="e-cpf cpf" inputmode="numeric" maxlength="14" value="${esc(f.cpf)}"></div>
+      <div><label>Telefone do cliente</label><input class="e-tel tel" inputmode="tel" placeholder="(00) 00000-0000" value="${esc(f.telefone ?? '')}"></div>
       <div><label>Modelo e ano do carro</label><input class="e-modelo" value="${esc(f.modelo_ano)}"></div>
       <div><label>FIPE (R$)</label><input class="e-fipe moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.fipe)}"></div>
       <div><label>Valor a financiar (R$)</label><input class="e-valor moeda" inputmode="numeric" placeholder="R$ 0,00" value="${moedaFmt(f.valor_financiado)}"></div>
       <div><label>Vendedor</label><input class="e-vend" value="${esc(f.vendedor)}"></div>
       <div><label>F&amp;I</label><input class="e-fi" value="${esc(f.fi_nome)}"></div>
-      <div><label>Telefone do cliente</label><input class="e-tel tel" inputmode="tel" placeholder="(00) 00000-0000" value="${esc(f.telefone ?? '')}"></div>
     </div>
     <div class="acoes" style="align-items:center"><button class="btn" onclick="salvarEdicao('${f.id}', this)">Salvar alterações</button><button class="btn sec" onclick="cancelarEdicao()">Cancelar</button><span class="msg" style="margin:0"></span></div>
   </article>`;
@@ -986,10 +986,11 @@ async function salvarNova() {
     fi_nome: $('#nFi').value.trim()
   };
   const tel = $('#nTel').value.trim();
-  if (tel) nova.telefone = tel;
+  nova.telefone = tel;
   const placa = $('#nPlaca').value.toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (placa) nova.placa = placa;
-  if (!nova.nome || !nova.cpf || !nova.modelo_ano || !nova.fipe || !nova.valor_financiado || !nova.vendedor || !nova.fi_nome) { msg.textContent = 'Preencha todos os campos obrigatórios.'; return; }
+  if (!nova.nome || !nova.cpf || !nova.telefone || !nova.modelo_ano || !nova.fipe || !nova.valor_financiado || !nova.vendedor || !nova.fi_nome) { msg.textContent = 'Preencha todos os campos.'; return; }
+  if (soDigitos(nova.telefone).length < 10) { msg.textContent = 'Telefone inválido. Informe com DDD: (47) 99999-9999.'; return; }
   if (!cpfValido(nova.cpf)) { msg.textContent = 'CPF inválido. Confira os números.'; return; }
   nova.cpf = cpfFmt(nova.cpf);
   if (nova.valor_financiado > nova.fipe * 1.2 && !confirm('O valor a financiar está bem acima da FIPE. Incluir mesmo assim?')) return;
